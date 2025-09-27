@@ -8,4 +8,5 @@ export interface SocketState {
     connected: boolean;
     connecting: boolean;
     id: string | null;
+    totalPlayers: number;
 }

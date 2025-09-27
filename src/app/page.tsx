@@ -9,6 +9,7 @@ export default function Home() {
             <div>Connecting: {socket.connecting ? 'True' : 'False'}</div>
             <div>Connected: {socket.connected ? 'True' : 'False'}</div>
             <div>ID: {socket.id}</div>
+            <div>Players: {socket.totalPlayers}</div>
         </div>
     );
 }

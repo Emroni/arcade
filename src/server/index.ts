@@ -11,10 +11,11 @@ const io = new Server(process.env.NEXT_PUBLIC_SERVER_PORT, {
 });
 console.log(`Server ready on port ${process.env.NEXT_PUBLIC_SERVER_PORT}`);
 
+// Handle connections
 io.on('connection', socket => {
-    console.log(`[${socket.id}] connected`);
+    io.emit('totalPlayers', io.engine.clientsCount);
 
     socket.on('disconnect', () => {
-        console.log(`[${socket.id}] disconnected`);
+        io.emit('totalPlayers', io.engine.clientsCount);
     });
 });

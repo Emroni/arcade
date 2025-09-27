@@ -26,19 +26,21 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             connected: false,
             connecting: true,
             id: null,
+            totalPlayers: 0,
         };
     }
 
     componentDidMount() {
-        // Update state
-        this.setState({
-            connecting: true,
-        });
+        // Check existing client
+        if (this.client) {
+            return;
+        }
 
         // Create socket client
         this.client = io(`${window.location.hostname}:${process.env.NEXT_PUBLIC_SERVER_PORT}`);
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
+        this.client.on('totalPlayers', this.handleTotalPlayers);
     }
 
     componentWillUnmount() {
@@ -62,6 +64,12 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             connected: false,
             connecting: false,
             id: null,
+        });
+    };
+
+    handleTotalPlayers = (totalPlayers: number) => {
+        this.setState({
+            totalPlayers,
         });
     };
 
