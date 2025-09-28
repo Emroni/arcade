@@ -1,4 +1,5 @@
 'use client';
+import { Room } from '@/types';
 import { Component, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SocketProviderProps, SocketState } from './Socket.types';
@@ -26,7 +27,12 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             connected: false,
             connecting: true,
             id: null,
+            room: null,
+            rooms: [],
             totalPlayers: 0,
+            createRoom: this.createRoom,
+            joinRoom: this.joinRoom,
+            leaveRoom: this.leaveRoom,
         };
     }
 
@@ -40,7 +46,10 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         this.client = io(`${window.location.hostname}:${process.env.NEXT_PUBLIC_SERVER_PORT}`);
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
-        this.client.on('totalPlayers', this.handleTotalPlayers);
+        this.client.on('joinedRoom', this.handleJoinedRoom);
+        this.client.on('leftRoom', this.handleLeftRoom);
+        this.client.on('updatedPlayers', this.handleUpdatedPlayers);
+        this.client.on('updatedRooms', this.handleUpdatedRooms);
     }
 
     componentWillUnmount() {
@@ -67,10 +76,42 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         });
     };
 
-    handleTotalPlayers = (totalPlayers: number) => {
+    handleJoinedRoom = (room: Room) => {
+        console.log('Joined room', room);
+        this.setState({
+            room,
+        });
+    };
+
+    handleLeftRoom = (room: Room) => {
+        console.log('Left room', room);
+        this.setState({
+            room: null,
+        });
+    };
+
+    handleUpdatedPlayers = (totalPlayers: number) => {
         this.setState({
             totalPlayers,
         });
+    };
+
+    handleUpdatedRooms = (rooms: Room[]) => {
+        this.setState({
+            rooms,
+        });
+    };
+
+    createRoom = () => {
+        this.client?.emit('createRoom');
+    };
+
+    joinRoom = (roomId: string) => {
+        this.client?.emit('joinRoom', roomId);
+    };
+
+    leaveRoom = (roomId: string) => {
+        this.client?.emit('leaveRoom', roomId);
     };
 
     render() {

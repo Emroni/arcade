@@ -1,5 +1,6 @@
 import dotenvFlow from 'dotenv-flow';
 import { Server } from 'socket.io';
+import { createRoom, joinRoom, leaveRoom, rooms } from './rooms';
 
 dotenvFlow.config();
 
@@ -13,9 +14,28 @@ console.log(`Server ready on port ${process.env.NEXT_PUBLIC_SERVER_PORT}`);
 
 // Handle connections
 io.on('connection', socket => {
-    io.emit('totalPlayers', io.engine.clientsCount);
+    console.log(`Player [${socket.id}] connected`);
+    io.emit('updatedPlayers', io.engine.clientsCount);
+    io.emit('updatedRooms', rooms);
 
     socket.on('disconnect', () => {
-        io.emit('totalPlayers', io.engine.clientsCount);
+        console.log(`Player [${socket.id}] disconnected`);
+        io.emit('updatedPlayers', io.engine.clientsCount);
+    });
+
+    socket.on('createRoom', () => {
+        const room = createRoom();
+        joinRoom(socket, room.id);
+        io.emit('updatedRooms', rooms);
+    });
+
+    socket.on('joinRoom', (roomId: string) => {
+        joinRoom(socket, roomId);
+        io.emit('updatedRooms', rooms);
+    });
+
+    socket.on('leaveRoom', (roomId: string) => {
+        leaveRoom(socket, roomId);
+        io.emit('updatedRooms', rooms);
     });
 });
