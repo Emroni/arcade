@@ -1,6 +1,6 @@
 'use client';
 import { debugClient } from '@/debug';
-import { Player } from '@/types';
+import { Player, Players } from '@/types';
 import { Component, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SocketProviderProps, SocketState } from './Socket.types';
@@ -74,24 +74,14 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         });
     };
 
-    handleAddPlayers = (playerIds: string[]) => {
-        debugClient('player', 'Added', playerIds);
-        this.setState(prevState => {
-            // Add players
-            const players = { ...prevState.players };
-            for (const id of playerIds) {
-                players[id] = {
-                    id,
-                    x: 0,
-                    y: 0,
-                };
-            }
-
-            // Update state
-            return {
-                players,
-            };
-        });
+    handleAddPlayers = (players: Players) => {
+        debugClient('player', 'Added', players);
+        this.setState(prevState => ({
+            players: {
+                ...prevState.players,
+                ...players,
+            },
+        }));
     };
 
     handleRemovePlayers = (playerIds: string[]) => {

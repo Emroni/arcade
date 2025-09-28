@@ -2,7 +2,7 @@ import { debugServer } from '@/debug';
 import { Player, Players, Point } from '@/types';
 import { Server, Socket } from 'socket.io';
 
-export const players: Players = {};
+export const list: Players = {};
 
 let io: Server;
 
@@ -12,7 +12,7 @@ export function init(server: Server) {
 
 export function register(socket: Socket) {
     // Check existing
-    if (players[socket.id]) {
+    if (list[socket.id]) {
         return;
     }
     debugServer('player', `${socket.id} registered`);
@@ -25,24 +25,26 @@ export function register(socket: Socket) {
     };
 
     // Add to room and list
-    players[socket.id] = player;
+    list[socket.id] = player;
     socket.join('players');
 
     // Add listeners
     socket.on('movePlayer', position => handleMove(player, position));
 
     // Notify viewers
-    io.to('viewers').emit('addPlayers', [socket.id]);
+    io.to('viewers').emit('addPlayers', {
+        [socket.id]: player,
+    });
 }
 
 export function unregister(socket: Socket) {
     // Check existing
-    if (!players[socket.id]) {
+    if (!list[socket.id]) {
     }
     debugServer('player', `${socket.id} unregistered`);
 
     // Remove from list
-    delete players[socket.id];
+    delete list[socket.id];
 
     // Notify viewers
     io.to('viewers').emit('removePlayers', [socket.id]);

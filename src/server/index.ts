@@ -29,6 +29,6 @@ io.on('connection', socket => {
     });
 
     socket.on('registerViewer', () => {
-        viewers.register(socket);
+        viewers.register(socket, players.list);
     });
 });
