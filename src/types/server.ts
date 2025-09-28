@@ -1,4 +1,5 @@
-export interface Room {
+export interface Player {
     id: string;
-    playerCount: number;
+    x: number;
+    y: number;
 }

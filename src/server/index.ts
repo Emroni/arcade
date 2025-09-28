@@ -1,9 +1,10 @@
 import { debugServer } from '@/debug';
+import { Player } from '@/types';
 import dotenvFlow from 'dotenv-flow';
 import { Server } from 'socket.io';
-import { createRoom, joinRoom, leaveRoom, removeRoom, rooms } from './rooms';
 
 dotenvFlow.config();
+const players: Player[] = [];
 
 // Create server
 const io = new Server(process.env.SERVER_PORT, {
@@ -15,39 +16,32 @@ console.log(`Server ready on port ${process.env.SERVER_PORT}`);
 
 // Handle connections
 io.on('connection', socket => {
-    // Connection
     debugServer('player', `${socket.id} connected`);
-    io.emit('updatedPlayers', io.engine.clientsCount);
-    io.emit('updatedRooms', rooms);
+    socket.emit('initPlayers', players);
 
+    // Create player
+    const player: Player = {
+        id: socket.id,
+        x: 0,
+        y: 0,
+    };
+    players.push(player);
+    io.emit('addPlayer', player);
+
+    // Connection
     socket.on('disconnect', () => {
-        debugServer('player', `${socket.id} connected`);
-        io.emit('updatedPlayers', io.engine.clientsCount);
+        debugServer('player', `${socket.id} disconnected`);
+        io.emit('removePlayer', socket.id);
+        const index = players.findIndex(p => p.id === socket.id);
+        if (index !== -1) {
+            players.splice(index, 1);
+        }
     });
 
-    // Room management
-    socket.on('createRoom', () => {
-        const room = createRoom();
-        joinRoom(socket, room.id);
-        io.emit('updatedRooms', rooms);
+    // Movement
+    socket.on('move', (data: any) => {
+        player.x = data.x;
+        player.y = data.y;
+        io.emit('updatePlayer', player);
     });
-
-    socket.on('joinRoom', (roomId: string) => {
-        joinRoom(socket, roomId);
-        io.emit('updatedRooms', rooms);
-    });
-
-    socket.on('leaveRoom', (roomId: string) => {
-        leaveRoom(socket, roomId);
-        io.emit('updatedRooms', rooms);
-    });
-});
-
-// Remove empty rooms when last player leaves
-io.of('/').adapter.on('leave-room', roomId => {
-    const room = rooms.find(r => r.id === roomId);
-    if (room && room.playerCount <= 0) {
-        removeRoom(roomId);
-        io.emit('updatedRooms', rooms);
-    }
 });

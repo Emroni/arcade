@@ -1,6 +1,6 @@
 'use client';
 import { debugClient } from '@/debug';
-import { Room } from '@/types';
+import { Player } from '@/types';
 import { Component, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SocketProviderProps, SocketState } from './Socket.types';
@@ -28,12 +28,8 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             connected: false,
             connecting: true,
             id: null,
-            room: null,
-            rooms: [],
-            totalPlayers: 0,
-            createRoom: this.createRoom,
-            joinRoom: this.joinRoom,
-            leaveRoom: this.leaveRoom,
+            players: [],
+            emit: this.emit,
         };
     }
 
@@ -47,10 +43,10 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         this.client = io(process.env.NEXT_PUBLIC_SERVER_PATH);
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
-        this.client.on('joinedRoom', this.handleJoinedRoom);
-        this.client.on('leftRoom', this.handleLeftRoom);
-        this.client.on('updatedPlayers', this.handleUpdatedPlayers);
-        this.client.on('updatedRooms', this.handleUpdatedRooms);
+        this.client.on('initPlayers', this.handleInitPlayers);
+        this.client.on('addPlayer', this.handleAddPlayer);
+        this.client.on('updatePlayer', this.handleUpdatePlayer);
+        this.client.on('removePlayer', this.handleRemovePlayer);
     }
 
     componentWillUnmount() {
@@ -79,42 +75,32 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         });
     };
 
-    handleJoinedRoom = (room: Room) => {
-        debugClient('socket', 'Joined room', room);
+    handleInitPlayers = (players: Player[]) => {
         this.setState({
-            room,
+            players,
         });
     };
 
-    handleLeftRoom = (room: Room) => {
-        debugClient('socket', 'Left room', room);
-        this.setState({
-            room: null,
-        });
+    handleAddPlayer = (player: Player) => {
+        this.setState(prevState => ({
+            players: [...prevState.players, player],
+        }));
     };
 
-    handleUpdatedPlayers = (totalPlayers: number) => {
-        this.setState({
-            totalPlayers,
-        });
+    handleUpdatePlayer = (player: Player) => {
+        this.setState(prevState => ({
+            players: prevState.players.map(p => (p.id === player.id ? player : p)),
+        }));
     };
 
-    handleUpdatedRooms = (rooms: Room[]) => {
-        this.setState({
-            rooms,
-        });
+    handleRemovePlayer = (playerId: string) => {
+        this.setState(prevState => ({
+            players: prevState.players.filter(p => p.id !== playerId),
+        }));
     };
 
-    createRoom = () => {
-        this.client?.emit('createRoom');
-    };
-
-    joinRoom = (roomId: string) => {
-        this.client?.emit('joinRoom', roomId);
-    };
-
-    leaveRoom = (roomId: string) => {
-        this.client?.emit('leaveRoom', roomId);
+    emit = (event: string, data: any) => {
+        this.client?.emit(event, data);
     };
 
     render() {
