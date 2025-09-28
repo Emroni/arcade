@@ -1,3 +1,4 @@
+import { debugServer } from '@/debug';
 import dotenvFlow from 'dotenv-flow';
 import { Server } from 'socket.io';
 import { createRoom, joinRoom, leaveRoom, rooms } from './rooms';
@@ -14,12 +15,12 @@ console.log(`Server ready on port ${process.env.NEXT_PUBLIC_SERVER_PORT}`);
 
 // Handle connections
 io.on('connection', socket => {
-    console.log(`Player [${socket.id}] connected`);
+    debugServer('player', `${socket.id} connected`);
     io.emit('updatedPlayers', io.engine.clientsCount);
     io.emit('updatedRooms', rooms);
 
     socket.on('disconnect', () => {
-        console.log(`Player [${socket.id}] disconnected`);
+        debugServer('player', `${socket.id} connected`);
         io.emit('updatedPlayers', io.engine.clientsCount);
     });
 

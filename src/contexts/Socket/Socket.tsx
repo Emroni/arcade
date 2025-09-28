@@ -1,4 +1,5 @@
 'use client';
+import { debugClient } from '@/debug';
 import { Room } from '@/types';
 import { Component, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
@@ -61,6 +62,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
     }
 
     handleConnect = () => {
+        debugClient('socket', 'Connected');
         this.setState({
             connected: true,
             connecting: false,
@@ -69,6 +71,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
     };
 
     handleDisconnect = () => {
+        debugClient('socket', 'Disconnected');
         this.setState({
             connected: false,
             connecting: false,
@@ -77,14 +80,14 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
     };
 
     handleJoinedRoom = (room: Room) => {
-        console.log('Joined room', room);
+        debugClient('socket', 'Joined room', room);
         this.setState({
             room,
         });
     };
 
     handleLeftRoom = (room: Room) => {
-        console.log('Left room', room);
+        debugClient('socket', 'Left room', room);
         this.setState({
             room: null,
         });
