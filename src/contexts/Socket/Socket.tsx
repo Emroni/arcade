@@ -44,7 +44,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         }
 
         // Create socket client
-        this.client = io(`${window.location.hostname}:${process.env.NEXT_PUBLIC_SERVER_PORT}`);
+        this.client = io(process.env.NEXT_PUBLIC_SERVER_PATH);
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
         this.client.on('joinedRoom', this.handleJoinedRoom);

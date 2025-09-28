@@ -6,12 +6,12 @@ import { createRoom, joinRoom, leaveRoom, removeRoom, rooms } from './rooms';
 dotenvFlow.config();
 
 // Create server
-const io = new Server(process.env.NEXT_PUBLIC_SERVER_PORT, {
+const io = new Server(process.env.SERVER_PORT, {
     cors: {
-        origin: process.env.NEXT_PUBLIC_SERVER_CORS_ORIGINS.split(','),
+        origin: process.env.SERVER_CORS_ORIGINS.split(','),
     },
 });
-console.log(`Server ready on port ${process.env.NEXT_PUBLIC_SERVER_PORT}`);
+console.log(`Server ready on port ${process.env.SERVER_PORT}`);
 
 // Handle connections
 io.on('connection', socket => {
