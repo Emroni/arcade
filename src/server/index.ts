@@ -8,7 +8,7 @@ dotenvFlow.config();
 // Create server
 const io = new Server(process.env.SERVER_PORT, {
     cors: {
-        origin: process.env.SERVER_CORS_ORIGINS.split(','),
+        origin: '*',
     },
 });
 console.log(`Server ready on port ${process.env.SERVER_PORT}`);
