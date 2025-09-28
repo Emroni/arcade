@@ -22,8 +22,7 @@ export function debugClient(type: string, message: string, ...rest: any) {
     // Log message
     const name = _.upperFirst(type);
     const data = [...rest].filter(item => item !== undefined);
-    const params = [`%c[${name}]`, `color: ${clientColors[type]}`, message, ...data];
-    console.log.apply(console, params);
+    console.log(`%c[${name}]`, `color: ${clientColors[type]}`, message, ...data);
 }
 
 export function debugServer(type: string, message: string, ...rest: any) {
@@ -35,6 +34,5 @@ export function debugServer(type: string, message: string, ...rest: any) {
     // Log message
     const name = _.upperFirst(type);
     const data = [...rest].filter(item => item !== undefined);
-    const params = [`${serverColors[type]}[${name}]\x1b[0m`, message, ...data];
-    console.log.apply(console, params);
+    console.log(`${serverColors[type]}[${name}]\x1b[0m`, message, ...data);
 }
