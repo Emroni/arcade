@@ -1,38 +1,39 @@
 import _ from 'lodash';
 
-const clientColors: Record<string, string> = {
+const clientTypes: Record<string, string> = {
+    player: '#0099ff',
     socket: '#fff700',
+    viewer: '#aa00aa',
 };
 
-const serverColors: Record<string, string> = {
-    player: '\x1b[33m', // Yellow
-    room: '\x1b[34m', // Blue
+const serverTypes: Record<string, string> = {
+    player: '\x1b[36m',
+    socket: '\x1b[33m',
+    viewer: '\x1b[35m',
 };
-
-const clientEnabled = ['socket'];
-
-const serverEnabled = ['player', 'room'];
 
 export function debugClient(type: string, message: string, ...rest: any) {
-    // Check if type is enabled
-    if (!clientEnabled.includes(type)) {
+    // Check if type is enabled by getting color
+    const color = clientTypes[type];
+    if (!color) {
         return;
     }
 
     // Log message
     const name = _.upperFirst(type);
     const data = [...rest].filter(item => item !== undefined);
-    console.log(`%c[${name}]`, `color: ${clientColors[type]}`, message, ...data);
+    console.log(`%c[${name}]`, `color: ${color}`, message, ...data);
 }
 
 export function debugServer(type: string, message: string, ...rest: any) {
     // Check if type is enabled
-    if (!serverEnabled.includes(type)) {
+    const color = serverTypes[type];
+    if (!color) {
         return;
     }
 
     // Log message
     const name = _.upperFirst(type);
     const data = [...rest].filter(item => item !== undefined);
-    console.log(`${serverColors[type]}[${name}]\x1b[0m`, message, ...data);
+    console.log(`${color}[${name}]\x1b[0m`, message, ...data);
 }

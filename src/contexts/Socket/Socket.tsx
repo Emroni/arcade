@@ -28,7 +28,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             connected: false,
             connecting: true,
             id: null,
-            players: [],
+            players: {},
             emit: this.emit,
         };
     }
@@ -43,10 +43,9 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         this.client = io(process.env.NEXT_PUBLIC_SERVER_PATH);
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
-        this.client.on('initPlayers', this.handleInitPlayers);
-        this.client.on('addPlayer', this.handleAddPlayer);
+        this.client.on('addPlayers', this.handleAddPlayers);
+        this.client.on('removePlayers', this.handleRemovePlayers);
         this.client.on('updatePlayer', this.handleUpdatePlayer);
-        this.client.on('removePlayer', this.handleRemovePlayer);
     }
 
     componentWillUnmount() {
@@ -75,27 +74,48 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         });
     };
 
-    handleInitPlayers = (players: Player[]) => {
-        this.setState({
-            players,
+    handleAddPlayers = (playerIds: string[]) => {
+        debugClient('player', 'Added', playerIds);
+        this.setState(prevState => {
+            // Add players
+            const players = { ...prevState.players };
+            for (const id of playerIds) {
+                players[id] = {
+                    id,
+                    x: 0,
+                    y: 0,
+                };
+            }
+
+            // Update state
+            return {
+                players,
+            };
         });
     };
 
-    handleAddPlayer = (player: Player) => {
-        this.setState(prevState => ({
-            players: [...prevState.players, player],
-        }));
+    handleRemovePlayers = (playerIds: string[]) => {
+        debugClient('player', 'Removed', playerIds);
+        this.setState(prevState => {
+            // Remove players
+            const players = { ...prevState.players };
+            for (const id of playerIds) {
+                delete players[id];
+            }
+
+            // Update state
+            return {
+                players,
+            };
+        });
     };
 
     handleUpdatePlayer = (player: Player) => {
         this.setState(prevState => ({
-            players: prevState.players.map(p => (p.id === player.id ? player : p)),
-        }));
-    };
-
-    handleRemovePlayer = (playerId: string) => {
-        this.setState(prevState => ({
-            players: prevState.players.filter(p => p.id !== playerId),
+            players: {
+                ...prevState.players,
+                [player.id]: player,
+            },
         }));
     };
 

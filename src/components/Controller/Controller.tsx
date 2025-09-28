@@ -1,10 +1,11 @@
 'use client';
 import { useSocket } from '@/contexts/Socket/Socket';
+import { Point } from '@/types';
 import _ from 'lodash';
 import { TouchEvent, useRef, useState } from 'react';
 
 export function Controller() {
-    const [dot, setDot] = useState({ x: 0, y: 0 });
+    const [position, setPosition] = useState<Point>({ x: 0, y: 0 });
     const [touchRect, setTouchRect] = useState<DOMRect | null>(null);
     const socket = useSocket();
     const touchRef = useRef<HTMLDivElement>(null);
@@ -18,12 +19,12 @@ export function Controller() {
     function handleTouchMove(e: TouchEvent) {
         if (touchRect) {
             const touch = e.touches[0];
-            const newDot = {
+            const newPosition = {
                 x: _.clamp((touch.clientX - touchRect.x) / touchRect.width, 0, 1),
                 y: _.clamp((touch.clientY - touchRect.y) / touchRect.height, 0, 1),
             };
-            setDot(newDot);
-            socket.emit('move', newDot);
+            setPosition(newPosition);
+            socket.emit('movePlayer', newPosition);
         }
     }
 
@@ -38,8 +39,8 @@ export function Controller() {
             <div
                 className="border rounded-full fixed h-6 w-6"
                 style={{
-                    left: `calc(${dot.x * 100}% - 12px)`,
-                    top: `calc(${dot.y * 100}% - 12px)`,
+                    left: `calc(${position.x * 100}% - 12px)`,
+                    top: `calc(${position.y * 100}% - 12px)`,
                 }}
             />
         </>
