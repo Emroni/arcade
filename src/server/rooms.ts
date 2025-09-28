@@ -26,17 +26,22 @@ export function createRoom() {
 
 export function removeRoom(roomId: string) {
     // Find room
-    const index = rooms.findIndex(r => r.id === roomId);
-    if (index === -1) {
+    const room = rooms.find(r => r.id === roomId);
+    if (!room) {
         debugServer('room', `${roomId} not found`);
         return;
     }
 
-    // TODO: Remove players from room
+    // Check for player count
+    if (room.playerCount > 0) {
+        debugServer('room', `${roomId} cannot be removed, players still present`);
+        return;
+    }
 
     // Remove room
+    const index = rooms.indexOf(room);
     rooms.splice(index, 1);
-    debugServer('room', `[${roomId}] removed`);
+    debugServer('room', `${roomId} removed`);
 }
 
 export function joinRoom(socket: Socket, roomId: string) {

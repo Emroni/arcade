@@ -1,7 +1,7 @@
 import { debugServer } from '@/debug';
 import dotenvFlow from 'dotenv-flow';
 import { Server } from 'socket.io';
-import { createRoom, joinRoom, leaveRoom, rooms } from './rooms';
+import { createRoom, joinRoom, leaveRoom, removeRoom, rooms } from './rooms';
 
 dotenvFlow.config();
 
@@ -15,6 +15,7 @@ console.log(`Server ready on port ${process.env.NEXT_PUBLIC_SERVER_PORT}`);
 
 // Handle connections
 io.on('connection', socket => {
+    // Connection
     debugServer('player', `${socket.id} connected`);
     io.emit('updatedPlayers', io.engine.clientsCount);
     io.emit('updatedRooms', rooms);
@@ -24,6 +25,7 @@ io.on('connection', socket => {
         io.emit('updatedPlayers', io.engine.clientsCount);
     });
 
+    // Room management
     socket.on('createRoom', () => {
         const room = createRoom();
         joinRoom(socket, room.id);
@@ -39,4 +41,13 @@ io.on('connection', socket => {
         leaveRoom(socket, roomId);
         io.emit('updatedRooms', rooms);
     });
+});
+
+// Remove empty rooms when last player leaves
+io.of('/').adapter.on('leave-room', roomId => {
+    const room = rooms.find(r => r.id === roomId);
+    if (room && room.playerCount <= 0) {
+        removeRoom(roomId);
+        io.emit('updatedRooms', rooms);
+    }
 });
