@@ -1,5 +1,6 @@
 'use client';
 import { useSocket } from '@/contexts/Socket/Socket';
+import QRCode from 'react-qr-code';
 
 export function Lobby() {
     const socket = useSocket();
@@ -25,8 +26,14 @@ export function Lobby() {
             </div>
 
             {/* Player list */}
-            <aside className="p-4 w-50">
-                <div>Players: {players.length}</div>
+            <aside className="flex flex-col p-4 w-50">
+                <div className="flex-1">Players: {players.length}</div>
+                <div>
+                    Join now
+                    <div className="bg-white w-16">
+                        <QRCode size={128} value={`${window.location.origin}/player`} viewBox="0 0 128 128" />
+                    </div>
+                </div>
             </aside>
         </div>
     );
