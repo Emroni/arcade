@@ -7,15 +7,27 @@ export function Lobby() {
     const players = Object.values(socket.players);
 
     return (
-        <div className="p-4">
-            <div>Players: {players.length}</div>
-            <ol className="list-decimal list-inside">
-                {players.map(player => (
-                    <li key={player.id}>
-                        {player.x.toFixed(3)}, {player.y.toFixed(3)}
-                    </li>
-                ))}
-            </ol>
+        <div className="flex h-screen">
+            {/* Playground */}
+            <div className="flex-1 relative">
+                <div className="absolute border inset-4">
+                    {players.map(player => (
+                        <div
+                            className="border rounded-full absolute h-6 w-6"
+                            key={player.id}
+                            style={{
+                                left: `calc(${player.x * 100}% - 12px)`,
+                                top: `calc(${player.y * 100}% - 12px)`,
+                            }}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Player list */}
+            <aside className="p-4 w-50">
+                <div>Players: {players.length}</div>
+            </aside>
         </div>
     );
 }
