@@ -1,4 +1,4 @@
-import { Player, PlayerMap } from '@/types';
+import { PlayerMap } from '@/types';
 import { SocketState } from '../Socket/Socket.types';
 
 export interface GameProviderProps {

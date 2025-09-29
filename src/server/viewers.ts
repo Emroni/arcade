@@ -1,14 +1,8 @@
 import { debugServer } from '@/debug';
 import { Player } from '@/types';
-import { Server, Socket } from 'socket.io';
-
-let io: Server;
+import { Socket } from 'socket.io';
 
 export const list: string[] = [];
-
-export function init(server: Server) {
-    io = server;
-}
 
 export function register(socket: Socket, players: Player[]) {
     // Check existing
