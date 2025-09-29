@@ -1,9 +1,8 @@
 'use client';
 import { debugClient } from '@/debug';
-import { Player } from '@/types';
 import { Component, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { SocketProviderProps, SocketState } from './Socket.types';
+import { SocketListener, SocketProviderProps, SocketState } from './Socket.types';
 
 const SocketContext = createContext<SocketState>({} as SocketState);
 
@@ -18,7 +17,7 @@ export function withSocket(WrappedComponent: any) {
 }
 
 export class SocketProvider extends Component<SocketProviderProps, SocketState> {
-    client: Socket | null = null;
+    client: Socket;
 
     constructor(props: SocketProviderProps) {
         super(props);
@@ -28,32 +27,24 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             connected: false,
             connecting: true,
             id: null,
-            players: [],
             emit: this.emit,
+            on: this.on,
+            off: this.off,
         };
+
+        // Create client
+        this.client = io(process.env.NEXT_PUBLIC_SERVER_PATH);
     }
 
     componentDidMount() {
-        // Check existing client
-        if (this.client) {
-            return;
-        }
-
-        // Create socket client
-        this.client = io(process.env.NEXT_PUBLIC_SERVER_PATH);
+        // Add client listeners
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
-        this.client.on('addPlayers', this.handleAddPlayers);
-        this.client.on('removePlayers', this.handleRemovePlayers);
-        this.client.on('updatePlayer', this.handleUpdatePlayer);
     }
 
     componentWillUnmount() {
-        // Disconnect socket client
-        if (this.client) {
-            this.client.disconnect();
-            this.client = null;
-        }
+        // Disconnect client
+        this.client.disconnect();
     }
 
     handleConnect = () => {
@@ -61,7 +52,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         this.setState({
             connected: true,
             connecting: false,
-            id: this.client?.id || null,
+            id: this.client.id || null,
         });
     };
 
@@ -74,36 +65,16 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         });
     };
 
-    handleAddPlayers = (players: Player[]) => {
-        debugClient('player', 'Added', players);
-        this.setState(prevState => ({
-            players: [...prevState.players, ...players],
-        }));
-    };
-
-    handleRemovePlayers = (playerIds: string[]) => {
-        debugClient('player', 'Removed', playerIds);
-        this.setState(prevState => ({
-            players: prevState.players.filter(player => !playerIds.includes(player.id)),
-        }));
-    };
-
-    handleUpdatePlayer = (player: Player) => {
-        this.setState(prevState => ({
-            players: prevState.players.map(p => {
-                if (p.id === player.id) {
-                    return {
-                        ...p,
-                        ...player,
-                    };
-                }
-                return p;
-            }),
-        }));
-    };
-
     emit = (event: string, data: any) => {
-        this.client?.emit(event, data);
+        this.client.emit(event, data);
+    };
+
+    on = (event: string, listener: SocketListener) => {
+        this.client.on(event, listener);
+    };
+
+    off = (event: string, listener: SocketListener) => {
+        this.client.off(event, listener);
     };
 
     render() {

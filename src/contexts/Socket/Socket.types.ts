@@ -1,5 +1,3 @@
-import { Player } from '@/types';
-
 export type SocketListener = (...args: any[]) => void;
 
 export interface SocketProviderProps {
@@ -10,6 +8,7 @@ export interface SocketState {
     connected: boolean;
     connecting: boolean;
     id: string | null;
-    players: Player[];
     emit: (event: string, data?: any) => void;
+    on: (event: string, listener: SocketListener) => void;
+    off: (event: string, listener: SocketListener) => void;
 }
