@@ -5,16 +5,15 @@ import { TouchEvent, useMemo, useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
 import { ControllerButtons, ControllerJoystick } from './Controller.types';
 
-const joystickInitial: ControllerJoystick = {
+const joystickReset = {
     amount: 0,
-    angle: 0,
     x: 100,
     y: 100,
 };
 
 export function Controller() {
     const [buttons, setButtons] = useState<ControllerButtons>({ a: false, b: false });
-    const [joystick, setJoystick] = useState<ControllerJoystick>(joystickInitial);
+    const [joystick, setJoystick] = useState<ControllerJoystick>({ ...joystickReset, angle: 0 });
     const socket = useSocket();
     const joystickRef = useRef<SVGGElement>(null);
     const joystickObserver = useResizeObserver({
@@ -33,7 +32,11 @@ export function Controller() {
             [button]: pressed,
         };
         setButtons(newButtons);
-        emitUpdate(newButtons);
+
+        // Emit event
+        socket.emit('updatePlayer', {
+            buttons: [newButtons.a, newButtons.b],
+        });
     }
 
     function handleTouchMove(e: TouchEvent) {
@@ -52,26 +55,24 @@ export function Controller() {
             y: radius * Math.cos(angle - Math.PI / 2) + 100,
         };
         setJoystick(newJoystick);
-        emitUpdate(undefined, newJoystick);
+
+        // Emit event
+        socket.emit('updatePlayer', {
+            joystick: [newJoystick.amount, newJoystick.angle],
+        });
     }
 
     function handleTouchEnd() {
-        // Reset to initial
-        setJoystick(joystickInitial);
-        emitUpdate(undefined, joystickInitial);
-    }
+        // Reset joystick while keeping angle
+        const newJoystick = {
+            ...joystickReset,
+            angle: joystick.angle,
+        };
+        setJoystick(newJoystick);
 
-    // TODO: Optimize by only sending the change
-    // TODO: Throttle
-    function emitUpdate(buttonsOverride?: ControllerButtons, joystickOverride?: ControllerJoystick) {
-        // Get data to send
-        const buttonsData = buttonsOverride || buttons;
-        const joystickData = joystickOverride || joystick;
-
-        // Emit move event
-        socket.emit('movePlayer', {
-            buttons: [buttonsData.a, buttonsData.b],
-            joystick: [joystickData.amount, joystickData.angle],
+        // Emit event
+        socket.emit('updatePlayer', {
+            joystick: [newJoystick.amount, newJoystick.angle],
         });
     }
 

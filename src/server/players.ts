@@ -1,5 +1,5 @@
 import { debugServer } from '@/debug';
-import { Player, PlayerMap, PlayerMove } from '@/types';
+import { Player, PlayerMap } from '@/types';
 import { Server, Socket } from 'socket.io';
 
 let io: Server;
@@ -22,6 +22,8 @@ export function register(socket: Socket) {
         buttons: [false, false],
         id: socket.id,
         joystick: [0, 0],
+        position: [0, 0],
+        velocity: [0, 0],
     };
 
     // Add to map and room
@@ -29,7 +31,7 @@ export function register(socket: Socket) {
     socket.join('players');
 
     // Add listeners
-    socket.on('movePlayer', move => handleMove(player, move));
+    socket.on('updatePlayer', data => handleUpdate(player, data));
 
     // Notify viewers
     io.to('viewers').emit('addPlayers', [player]);
@@ -49,11 +51,13 @@ export function unregister(socket: Socket) {
     io.to('viewers').emit('removePlayers', [socket.id]);
 }
 
-function handleMove(player: Player, move: PlayerMove) {
+function handleUpdate(player: Player, data: Partial<Player>) {
     // Update player
-    player.buttons = move.buttons;
-    player.joystick = move.joystick;
+    Object.assign(player, data);
 
     // Notify viewers
-    io.to('viewers').emit('updatePlayer', player);
+    io.to('viewers').emit('updatePlayer', {
+        id: player.id,
+        ...data,
+    });
 }

@@ -1,5 +1,6 @@
 'use client';
 import { debugClient } from '@/debug';
+import { Ship } from '@/game';
 import { Player } from '@/types';
 import { compose } from '@/utils';
 import * as PIXI from 'pixi.js';
@@ -19,6 +20,7 @@ export function withGame(WrappedComponent: any) {
 
 class Game extends Component<GameProviderProps, GameState> {
     app: PIXI.Application;
+    shipsContainer: PIXI.Container<Ship>;
 
     constructor(props: GameProviderProps) {
         super(props);
@@ -26,10 +28,14 @@ class Game extends Component<GameProviderProps, GameState> {
         // Create app
         this.app = new PIXI.Application();
 
+        // Add ships container
+        this.shipsContainer = new PIXI.Container<Ship>();
+        this.app.stage.addChild(this.shipsContainer);
+
         // Initialize state
         this.state = {
             canvas: null,
-            players: [],
+            players: {},
             mountCanvas: this.mountCanvas,
         };
     }
@@ -74,33 +80,69 @@ class Game extends Component<GameProviderProps, GameState> {
 
     handleAddPlayers = (players: Player[]) => {
         debugClient('player', 'Added', players);
-        this.setState(prevState => ({
-            players: [...prevState.players, ...players],
-        }));
+
+        // Add players to state
+        this.setState(prevState => {
+            const map = { ...prevState.players };
+            players.forEach(player => {
+                map[player.id] = player;
+            });
+            return {
+                players: map,
+            };
+        });
+
+        // Add ships to canvas
+        players.forEach(player => {
+            const ship = new Ship(this.app, player);
+            this.shipsContainer.addChild(ship);
+        });
     };
 
     handleRemovePlayers = (playerIds: string[]) => {
         debugClient('player', 'Removed', playerIds);
-        this.setState(prevState => ({
-            players: prevState.players.filter(player => !playerIds.includes(player.id)),
-        }));
+
+        // Remove players from state
+        this.setState(prevState => {
+            const players = { ...prevState.players };
+            playerIds.forEach(playerId => {
+                delete players[playerId];
+            });
+            return {
+                players,
+            };
+        });
+
+        // Remove ships from canvas
+        playerIds.forEach(playerId => {
+            const ship = this.shipsContainer.getChildByLabel(playerId);
+            ship?.removeFromParent();
+        });
     };
 
-    handleUpdatePlayer = (player: Player) => {
+    handleUpdatePlayer = (data: Partial<Player> & { id: string }) => {
+        // Update player in state
         this.setState(prevState => ({
-            players: prevState.players.map(p => {
-                if (p.id === player.id) {
-                    return {
-                        ...p,
-                        ...player,
-                    };
-                }
-                return p;
-            }),
+            players: {
+                ...prevState.players,
+                [data.id]: {
+                    ...prevState.players[data.id],
+                    ...data,
+                },
+            },
         }));
+
+        // Update ship
+        const ship = this.shipsContainer.children.find(s => s.playerId === data.id);
+        ship?.update(data);
     };
 
-    tick = () => {};
+    tick = () => {
+        // Tick ships
+        for (const ship of this.shipsContainer.children) {
+            ship.tick();
+        }
+    };
 
     render() {
         return <GameContext.Provider value={this.state}>{this.props.children}</GameContext.Provider>;

@@ -1,4 +1,4 @@
-import { Player } from '@/types';
+import { Player, PlayerMap } from '@/types';
 import { SocketState } from '../Socket/Socket.types';
 
 export interface GameProviderProps {
@@ -8,6 +8,6 @@ export interface GameProviderProps {
 
 export interface GameState {
     canvas: HTMLCanvasElement | null;
-    players: Player[];
+    players: PlayerMap;
     mountCanvas: (container: HTMLDivElement) => void;
 }

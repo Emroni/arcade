@@ -13,7 +13,7 @@ export function Lobby() {
 
             {/* Player list */}
             <aside className="flex flex-col p-4 w-50">
-                <div className="flex-1">Players: {game.players.length}</div>
+                <div className="flex-1">Players: {Object.values(game.players).length}</div>
                 <div>
                     <Link className="underline" href="/player">
                         Join now
