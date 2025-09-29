@@ -1,6 +1,6 @@
 'use client';
 import { debugClient } from '@/debug';
-import { Player, Players } from '@/types';
+import { Player } from '@/types';
 import { Component, createContext, useContext } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { SocketProviderProps, SocketState } from './Socket.types';
@@ -28,7 +28,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             connected: false,
             connecting: true,
             id: null,
-            players: {},
+            players: [],
             emit: this.emit,
         };
     }
@@ -74,38 +74,31 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         });
     };
 
-    handleAddPlayers = (players: Players) => {
+    handleAddPlayers = (players: Player[]) => {
         debugClient('player', 'Added', players);
         this.setState(prevState => ({
-            players: {
-                ...prevState.players,
-                ...players,
-            },
+            players: [...prevState.players, ...players],
         }));
     };
 
     handleRemovePlayers = (playerIds: string[]) => {
         debugClient('player', 'Removed', playerIds);
-        this.setState(prevState => {
-            // Remove players
-            const players = { ...prevState.players };
-            for (const id of playerIds) {
-                delete players[id];
-            }
-
-            // Update state
-            return {
-                players,
-            };
-        });
+        this.setState(prevState => ({
+            players: prevState.players.filter(player => !playerIds.includes(player.id)),
+        }));
     };
 
     handleUpdatePlayer = (player: Player) => {
         this.setState(prevState => ({
-            players: {
-                ...prevState.players,
-                [player.id]: player,
-            },
+            players: prevState.players.map(p => {
+                if (p.id === player.id) {
+                    return {
+                        ...p,
+                        ...player,
+                    };
+                }
+                return p;
+            }),
         }));
     };
 

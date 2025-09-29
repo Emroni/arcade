@@ -8,3 +8,8 @@ declare namespace NodeJS {
         SERVER_PORT: number;
     }
 }
+
+interface Point {
+    x: number;
+    y: number;
+}

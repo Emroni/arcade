@@ -1,23 +1,23 @@
 import { debugServer } from '@/debug';
-import { Players } from '@/types';
+import { Player } from '@/types';
 import { Server, Socket } from 'socket.io';
 
-export const list: string[] = [];
-
 let io: Server;
+
+export const list: string[] = [];
 
 export function init(server: Server) {
     io = server;
 }
 
-export function register(socket: Socket, players: Players) {
+export function register(socket: Socket, players: Player[]) {
     // Check existing
     if (list.includes(socket.id)) {
         return;
     }
     debugServer('viewer', `${socket.id} registered`);
 
-    // Add to room and list
+    // Add to list and room
     list.push(socket.id);
     socket.join('viewers');
 

@@ -1,48 +1,119 @@
 'use client';
 import { useSocket } from '@/contexts/Socket/Socket';
-import { Point } from '@/types';
 import _ from 'lodash';
-import { TouchEvent, useRef, useState } from 'react';
+import { TouchEvent, useMemo, useRef, useState } from 'react';
+import useResizeObserver from 'use-resize-observer';
+import { ControllerButtons, ControllerJoystick } from './Controller.types';
+
+const joystickInitial: ControllerJoystick = {
+    amount: 0,
+    angle: 0,
+    x: 100,
+    y: 100,
+};
 
 export function Controller() {
-    const [position, setPosition] = useState<Point>({ x: 0, y: 0 });
-    const [touchRect, setTouchRect] = useState<DOMRect | null>(null);
+    const [buttons, setButtons] = useState<ControllerButtons>({ a: false, b: false });
+    const [joystick, setJoystick] = useState<ControllerJoystick>(joystickInitial);
     const socket = useSocket();
-    const touchRef = useRef<HTMLDivElement>(null);
+    const joystickRef = useRef<SVGGElement>(null);
+    const joystickObserver = useResizeObserver({
+        ref: joystickRef as any,
+    });
 
-    function handleTouchStart(e: TouchEvent) {
-        const newTouchRect = touchRef.current?.getBoundingClientRect();
-        setTouchRect(newTouchRect || null);
-        handleTouchMove(e);
+    const joystickRect = useMemo(() => {
+        // Get joystick rect
+        return (joystickObserver.width && joystickRef.current?.getBoundingClientRect()) || new DOMRect();
+    }, [joystickObserver]);
+
+    function handleButton(button: 'a' | 'b', pressed: boolean) {
+        // Update buttons state
+        const newButtons = {
+            ...buttons,
+            [button]: pressed,
+        };
+        setButtons(newButtons);
+        emitUpdate(newButtons);
     }
 
     function handleTouchMove(e: TouchEvent) {
-        if (touchRect) {
-            const touch = e.touches[0];
-            const newPosition = {
-                x: _.clamp((touch.clientX - touchRect.x) / touchRect.width, 0, 1),
-                y: _.clamp((touch.clientY - touchRect.y) / touchRect.height, 0, 1),
-            };
-            setPosition(newPosition);
-            socket.emit('movePlayer', newPosition);
-        }
+        // Get angle and radius
+        const touch = e.touches[0];
+        const dX = touch.clientX - joystickRect.x - joystickRect.width / 2;
+        const dY = touch.clientY - joystickRect.y - joystickRect.height / 2;
+        const angle = Math.atan2(dY, dX);
+        const radius = Math.min((Math.sqrt(dX * dX + dY * dY) / (joystickRect.width / 2)) * 100, 60);
+
+        // Get new joystick
+        const newJoystick = {
+            angle: _.round(angle, 3),
+            amount: _.round(Math.max(0, (radius / 60 - 0.3) / 0.7), 3),
+            x: radius * Math.sin(-angle + Math.PI / 2) + 100,
+            y: radius * Math.cos(angle - Math.PI / 2) + 100,
+        };
+        setJoystick(newJoystick);
+        emitUpdate(undefined, newJoystick);
+    }
+
+    function handleTouchEnd() {
+        // Reset to initial
+        setJoystick(joystickInitial);
+        emitUpdate(undefined, joystickInitial);
+    }
+
+    // TODO: Optimize by only sending the change
+    // TODO: Throttle
+    function emitUpdate(buttonsOverride?: ControllerButtons, joystickOverride?: ControllerJoystick) {
+        // Get data to send
+        const buttonsData = buttonsOverride || buttons;
+        const joystickData = joystickOverride || joystick;
+
+        // Emit move event
+        socket.emit('movePlayer', {
+            buttons: [buttonsData.a, buttonsData.b],
+            joystick: [joystickData.amount, joystickData.angle],
+        });
     }
 
     return (
-        <>
-            <div
-                className="border fixed inset-0 select-none touch-none"
-                ref={touchRef}
-                onTouchMove={handleTouchMove}
-                onTouchStart={handleTouchStart}
-            />
-            <div
-                className="border rounded-full fixed h-6 w-6"
-                style={{
-                    left: `calc(${position.x * 100}% - 12px)`,
-                    top: `calc(${position.y * 100}% - 12px)`,
-                }}
-            />
-        </>
+        <div className="h-screen p-8 select-none touch-none">
+            <svg height="100%" viewBox="0 0 400 200" width="100%">
+                {/* Joystick */}
+                <g
+                    ref={joystickRef}
+                    onTouchEnd={handleTouchEnd}
+                    onTouchMove={handleTouchMove}
+                    onTouchStart={handleTouchMove}
+                >
+                    <circle
+                        cx={100}
+                        cy={100}
+                        fill="#ffffff"
+                        fillOpacity={0.2}
+                        r={99}
+                        stroke="#ffffff"
+                        strokeWidth={1}
+                    />
+                    <circle cx={100} cy={100} fill="#000000" fillOpacity={0.2} r={60} />
+                    <circle cx={joystick.x} cy={joystick.y} fill="#ffffff" r={40} />
+                </g>
+
+                {/* A button */}
+                <g onTouchEnd={() => handleButton('a', false)} onTouchStart={() => handleButton('a', true)}>
+                    <circle cx={380} cy={70} fill="#ffffff" fillOpacity={buttons.a ? 0.5 : 1} r={30} />
+                    <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={380} y={70}>
+                        A
+                    </text>
+                </g>
+
+                {/* B button */}
+                <g onTouchEnd={() => handleButton('b', false)} onTouchStart={() => handleButton('b', true)}>
+                    <circle cx={320} cy={130} fill="#ffffff" fillOpacity={buttons.b ? 0.5 : 1} r={30} />
+                    <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={320} y={130}>
+                        B
+                    </text>
+                </g>
+            </svg>
+        </div>
     );
 }

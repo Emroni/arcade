@@ -1,4 +1,4 @@
-import { Players } from '@/types';
+import { Player } from '@/types';
 
 export type SocketListener = (...args: any[]) => void;
 
@@ -10,6 +10,6 @@ export interface SocketState {
     connected: boolean;
     connecting: boolean;
     id: string | null;
-    players: Players;
+    players: Player[];
     emit: (event: string, data?: any) => void;
 }

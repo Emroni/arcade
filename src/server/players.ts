@@ -1,10 +1,10 @@
 import { debugServer } from '@/debug';
-import { Player, Players, Point } from '@/types';
+import { Player, PlayerMap, PlayerMove } from '@/types';
 import { Server, Socket } from 'socket.io';
 
-export const list: Players = {};
-
 let io: Server;
+
+export const map: PlayerMap = {};
 
 export function init(server: Server) {
     io = server;
@@ -12,48 +12,47 @@ export function init(server: Server) {
 
 export function register(socket: Socket) {
     // Check existing
-    if (list[socket.id]) {
+    if (map[socket.id]) {
         return;
     }
     debugServer('player', `${socket.id} registered`);
 
     // Create player
-    const player = {
+    const player: Player = {
+        buttons: [false, false],
         id: socket.id,
-        x: 0,
-        y: 0,
+        joystick: [0, 0],
     };
 
-    // Add to room and list
-    list[socket.id] = player;
+    // Add to map and room
+    map[socket.id] = player;
     socket.join('players');
 
     // Add listeners
-    socket.on('movePlayer', position => handleMove(player, position));
+    socket.on('movePlayer', move => handleMove(player, move));
 
     // Notify viewers
-    io.to('viewers').emit('addPlayers', {
-        [socket.id]: player,
-    });
+    io.to('viewers').emit('addPlayers', [player]);
 }
 
 export function unregister(socket: Socket) {
     // Check existing
-    if (!list[socket.id]) {
+    if (!map[socket.id]) {
+        return;
     }
     debugServer('player', `${socket.id} unregistered`);
 
     // Remove from list
-    delete list[socket.id];
+    delete map[socket.id];
 
     // Notify viewers
     io.to('viewers').emit('removePlayers', [socket.id]);
 }
 
-function handleMove(player: Player, position: Point) {
-    // Update position
-    player.x = position.x;
-    player.y = position.y;
+function handleMove(player: Player, move: PlayerMove) {
+    // Update player
+    player.buttons = move.buttons;
+    player.joystick = move.joystick;
 
     // Notify viewers
     io.to('viewers').emit('updatePlayer', player);
