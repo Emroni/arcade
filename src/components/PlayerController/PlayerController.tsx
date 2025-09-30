@@ -1,9 +1,10 @@
 'use client';
 import { useConnection } from '@/contexts/Connection/Connection';
+import { Cog8ToothIcon } from '@heroicons/react/24/solid';
 import _ from 'lodash';
 import { TouchEvent, useMemo, useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
-import { ControllerButtons, ControllerJoystick } from './Controller.types';
+import { PlayerControllerButtons, PlayerControllerJoystick, PlayerControllerProps } from './PlayerController.types';
 
 const joystickReset = {
     amount: 0,
@@ -11,9 +12,9 @@ const joystickReset = {
     y: 100,
 };
 
-export function Controller() {
-    const [buttons, setButtons] = useState<ControllerButtons>({ a: false, b: false });
-    const [joystick, setJoystick] = useState<ControllerJoystick>({ ...joystickReset, angle: 0 });
+export function PlayerController({ onShowConfig }: PlayerControllerProps) {
+    const [buttons, setButtons] = useState<PlayerControllerButtons>({ a: false, b: false });
+    const [joystick, setJoystick] = useState<PlayerControllerJoystick>({ ...joystickReset, angle: 0 });
     const connection = useConnection();
     const joystickRef = useRef<SVGGElement>(null);
     const joystickObserver = useResizeObserver({
@@ -77,7 +78,11 @@ export function Controller() {
     }
 
     return (
-        <div className="h-screen p-8 select-none touch-none">
+        <div className="h-screen p-8 relative select-none touch-none">
+            <button className="absolute h-8 left-2 top-2 w-8" onClick={onShowConfig}>
+                <Cog8ToothIcon />
+            </button>
+
             <svg height="100%" viewBox="0 0 400 200" width="100%">
                 {/* Joystick */}
                 <g
