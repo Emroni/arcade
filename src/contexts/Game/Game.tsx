@@ -5,7 +5,7 @@ import { compose } from '@/utils';
 import * as PIXI from 'pixi.js';
 import { Component, createContext, useContext } from 'react';
 import { withConnection } from '../Connection/Connection';
-import { GameProviderProps, GameState, GameTickPayload } from './Game.types';
+import { GameConfig, GameProviderProps, GameState, GameTickPayload } from './Game.types';
 
 export const GameContext = createContext<GameState>({} as GameState);
 
@@ -40,7 +40,12 @@ class Game extends Component<GameProviderProps, GameState> {
         // Initialize state
         this.state = {
             canvas: null,
+            config: {
+                color: '#ffffff',
+                name: 'Player',
+            },
             mountCanvas: this.mountCanvas,
+            updateConfig: this.updateConfig,
         };
     }
 
@@ -120,6 +125,15 @@ class Game extends Component<GameProviderProps, GameState> {
         // Resize container
         this.container.scale.set(scale);
         this.container.position.set(centerX - size / 2, centerY - size / 2);
+    };
+
+    updateConfig = (newConfig: Partial<GameConfig>) => {
+        this.setState({
+            config: {
+                ...this.state.config,
+                ...newConfig,
+            },
+        });
     };
 
     handleAddPlayers = (playerIds: string[]) => {
