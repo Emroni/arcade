@@ -106,16 +106,16 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
 
                 {/* A button */}
                 <g onTouchEnd={() => handleButton('a', false)} onTouchStart={() => handleButton('a', true)}>
-                    <circle cx={380} cy={70} fill="#ffffff" fillOpacity={buttons.a ? 0.5 : 1} r={30} />
-                    <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={380} y={70}>
+                    <circle cx={370} cy={70} fill="#ffffff" fillOpacity={buttons.a ? 0.5 : 1} r={30} />
+                    <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={370} y={70}>
                         A
                     </text>
                 </g>
 
                 {/* B button */}
                 <g onTouchEnd={() => handleButton('b', false)} onTouchStart={() => handleButton('b', true)}>
-                    <circle cx={320} cy={130} fill="#ffffff" fillOpacity={buttons.b ? 0.5 : 1} r={30} />
-                    <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={320} y={130}>
+                    <circle cx={300} cy={130} fill="#ffffff" fillOpacity={buttons.b ? 0.5 : 1} r={30} />
+                    <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={300} y={130}>
                         B
                     </text>
                 </g>
