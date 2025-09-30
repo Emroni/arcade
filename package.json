@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": false,
     "scripts": {
-        "serve": "tsx --watch src/server/index.ts",
+        "serve": "tsx --watch src/server.ts",
         "dev": "next dev",
         "build": "next build",
         "start": "next start",

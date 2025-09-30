@@ -2,6 +2,7 @@ export type SocketListener = (...args: any[]) => void;
 
 export interface SocketProviderProps {
     children: React.ReactNode;
+    pathname: string;
 }
 
 export interface SocketState {

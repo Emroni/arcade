@@ -1,7 +1,9 @@
 'use client';
 import { debugClient } from '@/debug';
+import { withPathname } from '@/hooks';
+import { compose } from '@/utils';
 import { Component, createContext, useContext } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { Socket as Client, io } from 'socket.io-client';
 import { SocketListener, SocketProviderProps, SocketState } from './Socket.types';
 
 const SocketContext = createContext<SocketState>({} as SocketState);
@@ -16,8 +18,8 @@ export function withSocket(WrappedComponent: any) {
     };
 }
 
-export class SocketProvider extends Component<SocketProviderProps, SocketState> {
-    client: Socket;
+class Socket extends Component<SocketProviderProps, SocketState> {
+    client: Client | null = null;
 
     constructor(props: SocketProviderProps) {
         super(props);
@@ -32,12 +34,21 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             on: this.on,
             off: this.off,
         };
-
-        // Create client
-        this.client = io(process.env.NEXT_PUBLIC_SERVER_PATH);
     }
 
     componentDidMount() {
+        // Prevent server-side execution
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        // Create client
+        this.client = io(process.env.NEXT_PUBLIC_SERVER_PATH, {
+            query: {
+                role: this.props.pathname.startsWith('/player') ? 'player' : 'viewer',
+            },
+        });
+
         // Add client listeners
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
@@ -46,7 +57,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
 
     componentWillUnmount() {
         // Disconnect client
-        this.client.disconnect();
+        this.client?.disconnect();
     }
 
     handleConnect = () => {
@@ -54,7 +65,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         this.setState({
             connected: true,
             connecting: false,
-            id: this.client.id || null,
+            id: this.client?.id || null,
         });
     };
 
@@ -75,18 +86,20 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
     };
 
     emit = (event: string, data: any) => {
-        this.client.emit(event, data);
+        this.client?.emit(event, data);
     };
 
     on = (event: string, listener: SocketListener) => {
-        this.client.on(event, listener);
+        this.client?.on(event, listener);
     };
 
     off = (event: string, listener: SocketListener) => {
-        this.client.off(event, listener);
+        this.client?.off(event, listener);
     };
 
     render() {
         return <SocketContext.Provider value={this.state}>{this.props.children}</SocketContext.Provider>;
     }
 }
+
+export const SocketProvider = compose(withPathname)(Socket);
