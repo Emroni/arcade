@@ -69,9 +69,14 @@ class Game extends Component<GameProviderProps, GameState> {
         connection.on('gameTick', this.handleGameTick);
         window.addEventListener('resize', this.handleResize);
 
-        // Add canvas to state
+        // Update state
+        const storedConfig = localStorage.getItem('game.config');
         this.setState({
             canvas: this.app.canvas,
+            config: {
+                ...this.state.config,
+                ...(storedConfig ? JSON.parse(storedConfig) : {}),
+            },
         });
 
         // Start game loop
@@ -128,12 +133,16 @@ class Game extends Component<GameProviderProps, GameState> {
     };
 
     updateConfig = (newConfig: Partial<GameConfig>) => {
+        // Update state
         this.setState({
             config: {
                 ...this.state.config,
                 ...newConfig,
             },
         });
+
+        // Store in local storage
+        localStorage.setItem('game.config', JSON.stringify(this.state.config));
     };
 
     handleAddPlayers = (playerIds: string[]) => {
