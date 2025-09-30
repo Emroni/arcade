@@ -1,3 +1,4 @@
 export * from './Controller/Controller';
+export * from './GameContainer/GameContainer';
 export * from './Loader/Loader';
-export * from './Lobby/Lobby';
+export * from './Sidebar/Sidebar';

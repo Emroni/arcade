@@ -1,19 +1,18 @@
 'use client';
-import { Loader, Lobby } from '@/components';
+import { GameContainer, Loader, Sidebar } from '@/components';
 import { useSocket } from '@/contexts/Socket/Socket';
-import { useEffect, useRef } from 'react';
 
-export default function Home() {
-    const initialized = useRef(false);
+export default function Viewer() {
     const socket = useSocket();
 
-    useEffect(() => {
-        // Register as viewer
-        if (!initialized.current) {
-            initialized.current = true;
-            socket.emit('registerViewer');
-        }
-    }, [socket]);
+    if (!socket.connected) {
+        return <Loader />;
+    }
 
-    return <>{socket.id ? <Lobby /> : <Loader />}</>;
+    return (
+        <div className="flex h-screen">
+            <GameContainer />
+            <Sidebar />
+        </div>
+    );
 }
