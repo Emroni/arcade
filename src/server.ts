@@ -45,7 +45,10 @@ io.on('connection', socket => {
 
         // Notify host
         if (host && host.id !== socket.id) {
-            host.emit('removePeer', socket.id);
+            host.emit('removePeer', {
+                id: socket.id,
+                role,
+            });
         }
 
         // Check if host
@@ -71,7 +74,10 @@ io.on('connection', socket => {
 
     // Notify host
     if (host && host.id !== socket.id) {
-        host.emit('addPeer', socket.id);
+        host.emit('addPeer', {
+            id: socket.id,
+            role,
+        });
     }
 
     // WebRTC signaling relay

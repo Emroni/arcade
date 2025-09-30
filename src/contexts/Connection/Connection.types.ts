@@ -10,7 +10,8 @@ export interface ConnectionState {
     connecting: boolean;
     host: boolean;
     id: string | null;
-    connectedPeers: string[];
+    players: string[];
+    viewers: string[];
     emit: (event: string, data: any) => void;
     on: (event: string, listener: ConnectionListener) => void;
     off: (event: string, listener: ConnectionListener) => void;

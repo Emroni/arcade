@@ -1,18 +1,28 @@
 'use client';
-import { useGame } from '@/contexts/Game/Game';
 import { useConnection } from '@/contexts/Connection/Connection';
 import Link from 'next/link';
 import QRCode from 'react-qr-code';
 
 export function Sidebar() {
     const connection = useConnection();
-    const game = useGame();
 
     return (
-        <aside className="flex flex-col p-4 w-50">
+        <aside className="flex flex-col p-4 w-80">
             <div className="flex-1">
+                <div>ID: {connection.id}</div>
                 <div>Host: {connection.host ? 'true' : 'false'}</div>
-                <div>Players: {Object.values(game.players).length}</div>
+                <div>Viewers: {connection.viewers.length}</div>
+                <ul className="list-disc list-inside">
+                    {connection.viewers.map(viewerId => (
+                        <li key={viewerId}>{viewerId}</li>
+                    ))}
+                </ul>
+                <div>Players: {connection.players.length}</div>
+                <ul className="list-disc list-inside">
+                    {connection.players.map(playerId => (
+                        <li key={playerId}>{playerId}</li>
+                    ))}
+                </ul>
             </div>
             <div>
                 <Link className="underline" href="/player">
