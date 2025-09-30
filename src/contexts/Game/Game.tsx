@@ -19,6 +19,8 @@ export function withGame(WrappedComponent: any) {
 
 class Game extends Component<GameProviderProps, GameState> {
     app: PIXI.Application;
+    background?: PIXI.TilingSprite;
+    container: PIXI.Container;
     shipsContainer: PIXI.Container<Ship>;
 
     constructor(props: GameProviderProps) {
@@ -27,9 +29,13 @@ class Game extends Component<GameProviderProps, GameState> {
         // Create app
         this.app = new PIXI.Application();
 
+        // Add container
+        this.container = new PIXI.Container<Ship>();
+        this.app.stage.addChild(this.container);
+
         // Add ships container
         this.shipsContainer = new PIXI.Container<Ship>();
-        this.app.stage.addChild(this.shipsContainer);
+        this.container.addChild(this.shipsContainer);
 
         // Initialize state
         this.state = {
@@ -42,17 +48,21 @@ class Game extends Component<GameProviderProps, GameState> {
         const { connection } = this.props;
 
         // Initialize app
-        await this.app.init({
-            antialias: true,
-            height: 640,
-            width: 640,
-        });
+        await this.app.init();
 
-        // Add connection listeners
+        // Add background
+        this.background = new PIXI.TilingSprite({
+            texture: await PIXI.Assets.load('/space.png'),
+        });
+        this.app.stage.addChildAt(this.background, 0);
+        this.background.anchor.set(0.5);
+
+        // Add listeners
         connection.on('addPlayers', this.handleAddPlayers);
         connection.on('removePlayers', this.handleRemovePlayers);
         connection.on('updatePlayer', this.handleUpdatePlayer);
         connection.on('gameTick', this.handleGameTick);
+        window.addEventListener('resize', this.handleResize);
 
         // Add canvas to state
         this.setState({
@@ -68,10 +78,11 @@ class Game extends Component<GameProviderProps, GameState> {
     componentWillUnmount() {
         const { connection } = this.props;
 
-        // Remove connection listeners
+        // Remove listeners
         connection.off('addPlayers', this.handleAddPlayers);
         connection.off('removePlayers', this.handleRemovePlayers);
         connection.off('updatePlayer', this.handleUpdatePlayer);
+        window.removeEventListener('resize', this.handleResize);
     }
 
     debug = (message: string, ...args: any[]) => {
@@ -91,6 +102,24 @@ class Game extends Component<GameProviderProps, GameState> {
     mountCanvas = (container: HTMLDivElement) => {
         container.appendChild(this.app.canvas);
         this.app.resizeTo = container;
+        this.handleResize();
+    };
+
+    handleResize = () => {
+        // Get size and position based on smallest side
+        const size = Math.min(this.app.canvas.width, this.app.canvas.height);
+        const scale = size / 1000;
+        const centerX = this.app.canvas.width / 2;
+        const centerY = this.app.canvas.height / 2;
+
+        // Resize background
+        this.background!.position.set(centerX, centerY);
+        this.background!.height = size;
+        this.background!.width = size;
+
+        // Resize container
+        this.container.scale.set(scale);
+        this.container.position.set(centerX - size / 2, centerY - size / 2);
     };
 
     handleAddPlayers = (playerIds: string[]) => {

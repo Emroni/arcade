@@ -69,9 +69,9 @@ export class Ship extends PIXI.Container {
         this.y += this.velocityY;
 
         // Wrap around edges
-        if (this.x < 0) this.x = this.app.canvas.width;
-        if (this.x > this.app.canvas.width) this.x = 0;
-        if (this.y < 0) this.y = this.app.canvas.height;
-        if (this.y > this.app.canvas.height) this.y = 0;
+        if (this.x < 0) this.x = 1000;
+        if (this.x > 1000) this.x = 0;
+        if (this.y < 0) this.y = 1000;
+        if (this.y > 1000) this.y = 0;
     };
 }
