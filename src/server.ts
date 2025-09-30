@@ -45,8 +45,7 @@ io.on('connection', socket => {
 
         // Notify host
         if (host && host.id !== socket.id) {
-            const event = role === 'player' ? 'removePlayer' : 'removeViewer';
-            host.emit(event, socket.id);
+            host.emit('removePeer', socket.id);
         }
 
         // Check if host
@@ -72,7 +71,31 @@ io.on('connection', socket => {
 
     // Notify host
     if (host && host.id !== socket.id) {
-        const event = role === 'player' ? 'addPlayer' : 'addViewer';
-        host.emit(event, socket.id);
+        host.emit('addPeer', socket.id);
     }
+
+    // WebRTC signaling relay
+    socket.on('webrtcOffer', data => {
+        debugServer('webrtc', `Relaying offer from ${socket.id} to ${data.target}`);
+        io.to(data.target).emit('webrtcOffer', {
+            offer: data.offer,
+            from: socket.id,
+        });
+    });
+
+    socket.on('webrtcAnswer', data => {
+        debugServer('webrtc', `Relaying answer from ${socket.id} to ${data.target}`);
+        io.to(data.target).emit('webrtcAnswer', {
+            answer: data.answer,
+            from: socket.id,
+        });
+    });
+
+    socket.on('iceCandidate', data => {
+        debugServer('webrtc', `Relaying ICE candidate from ${socket.id} to ${data.target}`);
+        io.to(data.target).emit('iceCandidate', {
+            candidate: data.candidate,
+            from: socket.id,
+        });
+    });
 });

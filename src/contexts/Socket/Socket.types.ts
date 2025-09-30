@@ -10,7 +10,11 @@ export interface SocketState {
     connecting: boolean;
     host: boolean;
     id: string | null;
-    emit: (event: string, data?: any) => void;
+    connectedPeers: string[];
+    emit: (event: string, data: any) => void;
     on: (event: string, listener: SocketListener) => void;
     off: (event: string, listener: SocketListener) => void;
+    sendToHost: (data: any) => void;
+    sendToAllPeers: (data: any) => void;
+    sendToPeer: (peerId: string, data: any) => void;
 }

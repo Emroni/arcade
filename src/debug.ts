@@ -10,9 +10,11 @@ const clientTypes: Record<string, string> = {
 };
 
 const serverTypes: Record<string, string> = {
+    ice: '\x1b[33m',
     player: '\x1b[36m',
     socket: '\x1b[33m',
     viewer: '\x1b[35m',
+    webrtc: '\x1b[33m',
 };
 
 export function debugClient(type: string, message: string, ...rest: any) {

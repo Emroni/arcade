@@ -33,9 +33,12 @@ export function Controller() {
         };
         setButtons(newButtons);
 
-        // Emit event
-        socket.emit('updatePlayer', {
-            buttons: [newButtons.a, newButtons.b],
+        // Notify host
+        socket.sendToHost({
+            type: 'updatePlayer',
+            payload: {
+                buttons: [newButtons.a, newButtons.b],
+            },
         });
     }
 
@@ -56,9 +59,12 @@ export function Controller() {
         };
         setJoystick(newJoystick);
 
-        // Emit event
-        socket.emit('updatePlayer', {
-            joystick: [newJoystick.amount, newJoystick.angle],
+        // Notify host
+        socket.sendToHost({
+            type: 'updatePlayer',
+            payload: {
+                joystick: [newJoystick.amount, newJoystick.angle],
+            },
         });
     }
 
@@ -70,9 +76,12 @@ export function Controller() {
         };
         setJoystick(newJoystick);
 
-        // Emit event
-        socket.emit('updatePlayer', {
-            joystick: [newJoystick.amount, newJoystick.angle],
+        // Notify host
+        socket.sendToHost({
+            type: 'updatePlayer',
+            payload: {
+                joystick: [newJoystick.amount, newJoystick.angle],
+            },
         });
     }
 
