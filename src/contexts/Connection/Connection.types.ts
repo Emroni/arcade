@@ -13,9 +13,10 @@ export interface ConnectionState {
     players: string[];
     viewers: string[];
     emit: (event: string, data: any) => void;
-    on: (event: string, listener: ConnectionListener) => void;
+    notifyViewers: (event: string, payload: any) => void;
     off: (event: string, listener: ConnectionListener) => void;
-    sendToHost: (data: any) => void;
+    on: (event: string, listener: ConnectionListener) => void;
     sendToAllPeers: (data: any) => void;
+    sendToHost: (data: any) => void;
     sendToPeer: (peerId: string, data: any) => void;
 }

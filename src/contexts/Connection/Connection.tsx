@@ -42,11 +42,12 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             players: [],
             viewers: [],
             emit: this.emit,
-            on: this.on,
+            notifyViewers: this.notifyViewers,
             off: this.off,
+            on: this.on,
+            sendToAllPeers: this.sendToAllPeers,
             sendToHost: this.sendToHost,
             sendToPeer: this.sendToPeer,
-            sendToAllPeers: this.sendToAllPeers,
         };
     }
 
@@ -88,6 +89,16 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
     debug = (message: string, ...args: any[]) => {
         debugClient('connection', message, ...args);
+    };
+
+    updateState = async (
+        newState: Partial<ConnectionState> | ((prevState: ConnectionState) => Partial<ConnectionState> | null) | null
+    ) => {
+        return new Promise<ConnectionState>(resolve => {
+            this.setState(newState as ConnectionState, () => {
+                resolve(this.state);
+            });
+        });
     };
 
     // Connection handlers
@@ -139,9 +150,9 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.dataChannels.delete(data.id);
 
         // Update state
-        this.setState(prev => ({
-            players: prev.players.filter(id => id !== data.id),
-            viewers: prev.viewers.filter(id => id !== data.id),
+        this.setState(prevState => ({
+            players: prevState.players.filter(id => id !== data.id),
+            viewers: prevState.viewers.filter(id => id !== data.id),
         }));
     };
 
@@ -158,24 +169,32 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         this.debug(`Data channel created for ${peerId}, initial state: ${dataChannel.readyState}`);
 
-        dataChannel.onopen = () => {
+        dataChannel.onopen = async () => {
             this.debug(`Data channel open with ${peerId}`);
-            this.setState(prev => ({
-                players: role === 'player' ? [...prev.players, peerId] : prev.players,
-                viewers: role === 'viewer' ? [...prev.viewers, peerId] : prev.viewers,
+            await this.updateState(prevState => ({
+                players: role === 'player' ? [...prevState.players, peerId] : prevState.players,
+                viewers: role === 'viewer' ? [...prevState.viewers, peerId] : prevState.viewers,
             }));
+            this.notifyViewers('updatePlayers', {
+                players: this.state.players,
+            });
+            this.notifyViewers('updateViewers', {
+                viewers: this.state.viewers,
+            });
         };
 
         dataChannel.onmessage = event => {
-            this.debug(`Message from ${peerId}:`, event.data);
             this.handlePeerMessage(peerId, event.data);
         };
 
-        dataChannel.onclose = () => {
+        dataChannel.onclose = async () => {
             this.debug(`Data channel closed with ${peerId}`);
-            this.setState(prev => ({
-                viewers: prev.viewers.filter(id => id !== peerId),
+            await this.updateState(prevState => ({
+                viewers: prevState.viewers.filter(id => id !== peerId),
             }));
+            this.notifyViewers('updateViewers', {
+                viewers: this.state.viewers,
+            });
         };
 
         dataChannel.onerror = error => {
@@ -251,21 +270,20 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             dataChannel.onopen = () => {
                 this.debug(`Connected to host`);
                 // TODO: Is this needed?
-                // this.setState(prev => ({
-                //     viewers: [...prev.viewers, data.from],
+                // this.setState(prevState => ({
+                //     viewers: [...prevState.viewers, data.from],
                 // }));
             };
 
             dataChannel.onmessage = event => {
-                this.debug(`Message from host:`, event.data);
                 this.handlePeerMessage(data.from, event.data);
             };
 
             dataChannel.onclose = () => {
                 this.debug(`Disconnected from host`);
                 // TODO: Is this needed?
-                // this.setState(prev => ({
-                //     viewers: prev.viewers.filter(id => id !== data.from),
+                // this.setState(prevState => ({
+                //     viewers: prevState.viewers.filter(id => id !== data.from),
                 // }));
             };
 
@@ -328,13 +346,18 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     // Peer Message Handling
-    handlePeerMessage = (peerId: string, data: string) => {
+    handlePeerMessage = (peerId: string, message: string) => {
         try {
-            const message = JSON.parse(data);
-            this.debug(`Message from ${peerId}:`, message);
+            const data = JSON.parse(message);
+            this.debug(`Message from ${peerId}:`, data);
 
-            // Emit as custom event for components to listen to
-            this.socket?.emit('peer-message', { from: peerId, data: message });
+            if (!this.state.host) {
+                if (data.event === 'updatePlayers') {
+                    this.setState({ players: data.payload.players });
+                } else if (data.event === 'updateViewers') {
+                    this.setState({ viewers: data.payload.viewers });
+                }
+            }
         } catch (error) {
             this.debug(`Error parsing message from ${peerId}:`, error);
         }
@@ -366,6 +389,15 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             } else {
                 this.debug(`Cannot send to ${peerId}: channel not open`, { dataChannel });
             }
+        });
+    };
+
+    notifyViewers = (event: string, payload: any) => {
+        this.state.viewers.forEach(viewerId => {
+            this.sendToPeer(viewerId, {
+                event,
+                payload,
+            });
         });
     };
 
