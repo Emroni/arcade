@@ -41,7 +41,9 @@ class Game extends Component<GameProviderProps, GameState> {
         this.state = {
             canvas: null,
             config: {
-                color: '#ffffff',
+                color: `#${Math.floor(Math.random() * 0xffffff)
+                    .toString(16)
+                    .padStart(6, '0')}`,
                 name: 'Player',
             },
             mountCanvas: this.mountCanvas,
@@ -132,9 +134,9 @@ class Game extends Component<GameProviderProps, GameState> {
         this.container.position.set(centerX - size / 2, centerY - size / 2);
     };
 
-    updateConfig = (newConfig: Partial<GameConfig>) => {
+    updateConfig = async (newConfig: Partial<GameConfig>) => {
         // Update state
-        this.setState({
+        await this.updateState({
             config: {
                 ...this.state.config,
                 ...newConfig,
