@@ -1,7 +1,7 @@
 'use client';
-
 import { useGame } from '@/contexts/Game/Game';
 import { XMarkIcon } from '@heroicons/react/24/solid';
+import { SliderPicker } from 'react-color';
 import { PlayerConfigProps } from './PlayerConfig.types';
 
 export function PlayerConfig({ onClose }: PlayerConfigProps) {
@@ -30,16 +30,8 @@ export function PlayerConfig({ onClose }: PlayerConfigProps) {
 
                 {/* Color input */}
                 <div>
-                    <label className="block mb-2 font-bold" htmlFor="color">
-                        Color
-                    </label>
-                    <input
-                        className="w-full p-2 border border-gray-300 rounded"
-                        id="color"
-                        type="text"
-                        value={game.config.color}
-                        onChange={e => game.updateConfig({ color: e.currentTarget.value })}
-                    />
+                    <label className="block mb-2 font-bold">Color</label>
+                    <SliderPicker color={game.config.color} onChange={e => game.updateConfig({ color: e.hex })} />
                 </div>
             </div>
         </div>
