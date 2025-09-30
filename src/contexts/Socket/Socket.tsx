@@ -50,8 +50,12 @@ class Socket extends Component<SocketProviderProps, SocketState> {
         });
 
         // Add client listeners
+        this.client.on('addPlayer', this.handleAddPlayer);
+        this.client.on('addViewer', this.handleAddViewer);
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
+        this.client.on('removePlayer', this.handleRemovePlayer);
+        this.client.on('removeViewer', this.handleRemoveViewer);
         this.client.on('setHost', this.handleSetHost);
     }
 
@@ -60,6 +64,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
         this.client?.disconnect();
     }
 
+    // Connection handlers
     handleConnect = () => {
         debugClient('socket', 'Connected');
         this.setState({
@@ -85,6 +90,25 @@ class Socket extends Component<SocketProviderProps, SocketState> {
         });
     };
 
+    // Player handlers
+    handleAddPlayer = (socketId: string) => {
+        debugClient('socket', 'Add player', socketId);
+    };
+
+    handleRemovePlayer = (socketId: string) => {
+        debugClient('socket', 'Remove player', socketId);
+    };
+
+    // Viewer handlers
+    handleAddViewer = (socketId: string) => {
+        debugClient('socket', 'Add viewer', socketId);
+    };
+
+    handleRemoveViewer = (socketId: string) => {
+        debugClient('socket', 'Remove viewer', socketId);
+    };
+
+    // Socket methods
     emit = (event: string, data: any) => {
         this.client?.emit(event, data);
     };
