@@ -1,5 +1,6 @@
 'use client';
 import { useConnection } from '@/contexts/Connection/Connection';
+import { useGame } from '@/contexts/Game/Game';
 import { Cog8ToothIcon } from '@heroicons/react/24/solid';
 import _ from 'lodash';
 import { TouchEvent, useMemo, useRef, useState } from 'react';
@@ -16,6 +17,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
     const [buttons, setButtons] = useState<PlayerControllerButtons>({ a: false, b: false });
     const [joystick, setJoystick] = useState<PlayerControllerJoystick>({ ...joystickReset, angle: 0 });
     const connection = useConnection();
+    const game = useGame();
     const joystickRef = useRef<SVGGElement>(null);
     const joystickObserver = useResizeObserver({
         ref: joystickRef as any,
@@ -94,19 +96,19 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
                     <circle
                         cx={100}
                         cy={100}
-                        fill="#ffffff"
+                        fill={game.config.color}
                         fillOpacity={0.2}
                         r={99}
-                        stroke="#ffffff"
+                        stroke={game.config.color}
                         strokeWidth={1}
                     />
                     <circle cx={100} cy={100} fill="#000000" fillOpacity={0.2} r={60} />
-                    <circle cx={joystick.x} cy={joystick.y} fill="#ffffff" r={40} />
+                    <circle cx={joystick.x} cy={joystick.y} fill={game.config.color} r={40} />
                 </g>
 
                 {/* A button */}
                 <g onTouchEnd={() => handleButton('a', false)} onTouchStart={() => handleButton('a', true)}>
-                    <circle cx={370} cy={70} fill="#ffffff" fillOpacity={buttons.a ? 0.5 : 1} r={30} />
+                    <circle cx={370} cy={70} fill={game.config.color} fillOpacity={buttons.a ? 0.5 : 1} r={30} />
                     <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={370} y={70}>
                         A
                     </text>
@@ -114,7 +116,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
 
                 {/* B button */}
                 <g onTouchEnd={() => handleButton('b', false)} onTouchStart={() => handleButton('b', true)}>
-                    <circle cx={300} cy={130} fill="#ffffff" fillOpacity={buttons.b ? 0.5 : 1} r={30} />
+                    <circle cx={300} cy={130} fill={game.config.color} fillOpacity={buttons.b ? 0.5 : 1} r={30} />
                     <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={300} y={130}>
                         B
                     </text>
