@@ -5,7 +5,7 @@ import { Player } from '@/types';
 import { compose } from '@/utils';
 import * as PIXI from 'pixi.js';
 import { Component, createContext, useContext } from 'react';
-import { withSocket } from '../Socket/Socket';
+import { withConnection } from '../Connection/Connection';
 import { GameProviderProps, GameState } from './Game.types';
 
 export const GameContext = createContext<GameState>({} as GameState);
@@ -41,7 +41,7 @@ class Game extends Component<GameProviderProps, GameState> {
     }
 
     componentDidMount = async () => {
-        const { socket } = this.props;
+        const { connection } = this.props;
 
         // Initialize app
         await this.app.init({
@@ -51,9 +51,9 @@ class Game extends Component<GameProviderProps, GameState> {
         });
 
         // Add socket listeners
-        socket.on('addPlayers', this.handleAddPlayers);
-        socket.on('removePlayers', this.handleRemovePlayers);
-        socket.on('updatePlayer', this.handleUpdatePlayer);
+        connection.on('addPlayers', this.handleAddPlayers);
+        connection.on('removePlayers', this.handleRemovePlayers);
+        connection.on('updatePlayer', this.handleUpdatePlayer);
 
         // Add canvas to state
         this.setState({
@@ -65,12 +65,12 @@ class Game extends Component<GameProviderProps, GameState> {
     };
 
     componentWillUnmount(): void {
-        const { socket } = this.props;
+        const { connection } = this.props;
 
         // Remove socket listeners
-        socket.off('addPlayers', this.handleAddPlayers);
-        socket.off('removePlayers', this.handleRemovePlayers);
-        socket.off('updatePlayer', this.handleUpdatePlayer);
+        connection.off('addPlayers', this.handleAddPlayers);
+        connection.off('removePlayers', this.handleRemovePlayers);
+        connection.off('updatePlayer', this.handleUpdatePlayer);
     }
 
     mountCanvas = (container: HTMLDivElement) => {
@@ -149,4 +149,4 @@ class Game extends Component<GameProviderProps, GameState> {
     }
 }
 
-export const GameProvider = compose(withSocket)(Game);
+export const GameProvider = compose(withConnection)(Game);

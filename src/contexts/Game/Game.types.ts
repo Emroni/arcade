@@ -1,9 +1,9 @@
 import { PlayerMap } from '@/types';
-import { SocketState } from '../Socket/Socket.types';
+import { ConnectionState } from '../Connection/Connection.types';
 
 export interface GameProviderProps {
     children: React.ReactNode;
-    socket: SocketState;
+    connection: ConnectionState;
 }
 
 export interface GameState {

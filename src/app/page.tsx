@@ -1,11 +1,11 @@
 'use client';
 import { GameContainer, Loader, Sidebar } from '@/components';
-import { useSocket } from '@/contexts/Socket/Socket';
+import { useConnection } from '@/contexts/Connection/Connection';
 
 export default function Viewer() {
-    const socket = useSocket();
+    const connection = useConnection();
 
-    if (!socket.connected) {
+    if (!connection.connected) {
         return <Loader />;
     }
 

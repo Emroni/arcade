@@ -3,29 +3,30 @@ import { debugClient } from '@/debug';
 import { withPathname } from '@/hooks';
 import { compose } from '@/utils';
 import { Component, createContext, useContext } from 'react';
-import { Socket as Sock, io } from 'socket.io-client';
-import { SocketListener, SocketProviderProps, SocketState } from './Socket.types';
+import { Socket, io } from 'socket.io-client';
+import { ConnectionListener, ConnectionProviderProps, ConnectionState } from './Connection.types';
 
-const SocketContext = createContext<SocketState>({} as SocketState);
+const ConnectionContext = createContext<ConnectionState>({} as ConnectionState);
 
-export const useSocket = () => useContext(SocketContext);
+export const useConnection = () => useContext(ConnectionContext);
 
-export function withSocket(WrappedComponent: any) {
-    return function SocketWrappedComponent(props: any) {
+export function withConnection(WrappedComponent: any) {
+    return function ConnectionWrappedComponent(props: any) {
         return (
-            <SocketContext.Consumer>{state => <WrappedComponent {...props} socket={state} />}</SocketContext.Consumer>
+            <ConnectionContext.Consumer>
+                {state => <WrappedComponent {...props} connection={state} />}
+            </ConnectionContext.Consumer>
         );
     };
 }
 
-// TODO: Rename from Socket to something else to avoid confusion with Socket from socket.io
-class Socket extends Component<SocketProviderProps, SocketState> {
-    client: Sock | null = null;
+class Connection extends Component<ConnectionProviderProps, ConnectionState> {
+    client: Socket | null = null;
     dataChannels: Map<string, RTCDataChannel> = new Map();
     hostId: string | null = null;
     peerConnections: Map<string, RTCPeerConnection> = new Map();
 
-    constructor(props: SocketProviderProps) {
+    constructor(props: ConnectionProviderProps) {
         super(props);
 
         // Initial state
@@ -82,7 +83,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
 
     // Connection handlers
     handleConnect = () => {
-        debugClient('socket', 'Connected');
+        debugClient('connection', 'Connected');
         this.setState({
             connected: true,
             connecting: false,
@@ -91,7 +92,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
     };
 
     handleDisconnect = () => {
-        debugClient('socket', 'Disconnected');
+        debugClient('connection', 'Disconnected');
         this.setState({
             connected: false,
             connecting: false,
@@ -100,7 +101,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
     };
 
     handleSetHost = () => {
-        debugClient('socket', 'Set as host');
+        debugClient('connection', 'Set as host');
         this.setState({
             host: true,
         });
@@ -110,13 +111,13 @@ class Socket extends Component<SocketProviderProps, SocketState> {
     };
 
     initializeAsHost = () => {
-        debugClient('socket', 'Initialized as host, ready to accept connections');
+        debugClient('connection', 'Initialized as host, ready to accept connections');
         // Host is now ready to create connections when peers are added
     };
 
     // Peer connection handlers
     handleAddPeer = (socketId: string) => {
-        debugClient('socket', 'Add peer', socketId);
+        debugClient('connection', 'Add peer', socketId);
 
         // If we're the host, create connection to this new peer
         if (this.state.host) {
@@ -125,7 +126,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
     };
 
     handleRemovePeer = (socketId: string) => {
-        debugClient('socket', 'Remove peer', socketId);
+        debugClient('connection', 'Remove peer', socketId);
 
         // Close and remove peer connection
         const peerConnection = this.peerConnections.get(socketId);
@@ -144,7 +145,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
 
     // WebRTC Connection Management
     createPeerConnection = async (peerId: string) => {
-        debugClient('socket', `Creating connection to peer: ${peerId}`);
+        debugClient('connection', `Creating connection to peer: ${peerId}`);
 
         const peerConnection = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
@@ -155,50 +156,50 @@ class Socket extends Component<SocketProviderProps, SocketState> {
             ordered: true,
         });
 
-        debugClient('socket', `Data channel created for ${peerId}, initial state: ${dataChannel.readyState}`);
+        debugClient('connection', `Data channel created for ${peerId}, initial state: ${dataChannel.readyState}`);
 
         dataChannel.onopen = () => {
-            debugClient('socket', `Data channel open with ${peerId}`);
+            debugClient('connection', `Data channel open with ${peerId}`);
             this.setState(prev => ({
                 connectedPeers: [...prev.connectedPeers, peerId],
             }));
         };
 
         dataChannel.onmessage = event => {
-            debugClient('socket', `Message from ${peerId}:`, event.data);
+            debugClient('connection', `Message from ${peerId}:`, event.data);
             this.handlePeerMessage(peerId, event.data);
         };
 
         dataChannel.onclose = () => {
-            debugClient('socket', `Data channel closed with ${peerId}`);
+            debugClient('connection', `Data channel closed with ${peerId}`);
             this.setState(prev => ({
                 connectedPeers: prev.connectedPeers.filter(id => id !== peerId),
             }));
         };
 
         dataChannel.onerror = error => {
-            debugClient('socket', `Data channel error with ${peerId}:`, error);
+            debugClient('connection', `Data channel error with ${peerId}:`, error);
         };
 
         // Add connection state change logging
         peerConnection.onconnectionstatechange = () => {
-            debugClient('socket', `Peer connection state with ${peerId}: ${peerConnection.connectionState}`);
+            debugClient('connection', `Peer connection state with ${peerId}: ${peerConnection.connectionState}`);
         };
 
         peerConnection.oniceconnectionstatechange = () => {
-            debugClient('socket', `ICE connection state with ${peerId}: ${peerConnection.iceConnectionState}`);
+            debugClient('connection', `ICE connection state with ${peerId}: ${peerConnection.iceConnectionState}`);
         };
 
         // Handle ICE candidates
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
-                debugClient('socket', `Sending ICE candidate to ${peerId}`);
+                debugClient('connection', `Sending ICE candidate to ${peerId}`);
                 this.client?.emit('iceCandidate', {
                     candidate: event.candidate,
                     target: peerId,
                 });
             } else {
-                debugClient('socket', `ICE gathering complete for ${peerId}`);
+                debugClient('connection', `ICE gathering complete for ${peerId}`);
             }
         };
 
@@ -208,26 +209,26 @@ class Socket extends Component<SocketProviderProps, SocketState> {
 
         // Create and send offer
         try {
-            debugClient('socket', `Creating offer for ${peerId}`);
+            debugClient('connection', `Creating offer for ${peerId}`);
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
-            debugClient('socket', `Offer created and set for ${peerId}`);
+            debugClient('connection', `Offer created and set for ${peerId}`);
 
             this.client?.emit('webrtcOffer', {
                 offer: offer,
                 target: peerId,
             });
-            debugClient('socket', `Offer sent to ${peerId}`);
+            debugClient('connection', `Offer sent to ${peerId}`);
         } catch (error) {
-            debugClient('socket', `Error creating offer for ${peerId}:`, error);
+            debugClient('connection', `Error creating offer for ${peerId}:`, error);
         }
     };
 
     // WebRTC Signaling Handlers
     handleWebRTCOffer = async (data: { offer: RTCSessionDescriptionInit; from: string }) => {
-        debugClient('socket', `Received offer from ${data.from}`);
+        debugClient('connection', `Received offer from ${data.from}`);
         this.hostId = data.from;
-        debugClient('socket', `Host ID set to: ${this.hostId}`);
+        debugClient('connection', `Host ID set to: ${this.hostId}`);
 
         const peerConnection = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
@@ -235,41 +236,47 @@ class Socket extends Component<SocketProviderProps, SocketState> {
 
         // Add connection state logging
         peerConnection.onconnectionstatechange = () => {
-            debugClient('socket', `Peer connection state with host ${data.from}: ${peerConnection.connectionState}`);
+            debugClient(
+                'connection',
+                `Peer connection state with host ${data.from}: ${peerConnection.connectionState}`
+            );
         };
 
         peerConnection.oniceconnectionstatechange = () => {
-            debugClient('socket', `ICE connection state with host ${data.from}: ${peerConnection.iceConnectionState}`);
+            debugClient(
+                'connection',
+                `ICE connection state with host ${data.from}: ${peerConnection.iceConnectionState}`
+            );
         };
 
         // Handle incoming data channel (non-host receives channel)
         peerConnection.ondatachannel = event => {
-            debugClient('socket', `Received data channel from host ${data.from}`);
+            debugClient('connection', `Received data channel from host ${data.from}`);
             const dataChannel = event.channel;
 
-            debugClient('socket', `Data channel state: ${dataChannel.readyState}`);
+            debugClient('connection', `Data channel state: ${dataChannel.readyState}`);
 
             dataChannel.onopen = () => {
-                debugClient('socket', `Connected to host ${data.from}`);
+                debugClient('connection', `Connected to host ${data.from}`);
                 this.setState(prev => ({
                     connectedPeers: [...prev.connectedPeers, data.from],
                 }));
             };
 
             dataChannel.onmessage = event => {
-                debugClient('socket', `Message from host ${data.from}:`, event.data);
+                debugClient('connection', `Message from host ${data.from}:`, event.data);
                 this.handlePeerMessage(data.from, event.data);
             };
 
             dataChannel.onclose = () => {
-                debugClient('socket', `Disconnected from host ${data.from}`);
+                debugClient('connection', `Disconnected from host ${data.from}`);
                 this.setState(prev => ({
                     connectedPeers: prev.connectedPeers.filter(id => id !== data.from),
                 }));
             };
 
             dataChannel.onerror = error => {
-                debugClient('socket', `Data channel error with host ${data.from}:`, error);
+                debugClient('connection', `Data channel error with host ${data.from}:`, error);
             };
 
             this.dataChannels.set(data.from, dataChannel);
@@ -278,7 +285,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
         // Handle ICE candidates
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
-                debugClient('socket', 'Sending ICE candidate to host');
+                debugClient('connection', 'Sending ICE candidate to host');
                 this.client?.emit('iceCandidate', {
                     candidate: event.candidate,
                     target: data.from,
@@ -298,19 +305,19 @@ class Socket extends Component<SocketProviderProps, SocketState> {
                 target: data.from,
             });
         } catch (error) {
-            debugClient('socket', `Error handling offer from ${data.from}:`, error);
+            debugClient('connection', `Error handling offer from ${data.from}:`, error);
         }
     };
 
     handleWebRTCAnswer = async (data: { answer: RTCSessionDescriptionInit; from: string }) => {
-        debugClient('socket', `Received answer from ${data.from}`);
+        debugClient('connection', `Received answer from ${data.from}`);
 
         const peerConnection = this.peerConnections.get(data.from);
         if (peerConnection) {
             try {
                 await peerConnection.setRemoteDescription(data.answer);
             } catch (error) {
-                debugClient('socket', `Error handling answer from ${data.from}:`, error);
+                debugClient('connection', `Error handling answer from ${data.from}:`, error);
             }
         }
     };
@@ -321,7 +328,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
             try {
                 await peerConnection.addIceCandidate(data.candidate);
             } catch (error) {
-                debugClient('socket', `Error adding ICE candidate from ${data.from}:`, error);
+                debugClient('connection', `Error adding ICE candidate from ${data.from}:`, error);
             }
         }
     };
@@ -330,12 +337,12 @@ class Socket extends Component<SocketProviderProps, SocketState> {
     handlePeerMessage = (peerId: string, data: string) => {
         try {
             const message = JSON.parse(data);
-            debugClient('socket', `Message from ${peerId}:`, message);
+            debugClient('connection', `Message from ${peerId}:`, message);
 
             // Emit as custom event for components to listen to
             this.client?.emit('peer-message', { from: peerId, data: message });
         } catch (error) {
-            debugClient('socket', `Error parsing message from ${peerId}:`, error);
+            debugClient('connection', `Error parsing message from ${peerId}:`, error);
         }
     };
 
@@ -344,7 +351,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
         if (this.hostId) {
             this.sendToPeer(this.hostId, data);
         } else {
-            debugClient('socket', 'No host to send to');
+            debugClient('connection', 'No host to send to');
         }
     };
 
@@ -353,7 +360,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
         if (dataChannel && dataChannel.readyState === 'open') {
             dataChannel.send(JSON.stringify(data));
         } else {
-            debugClient('socket', `Cannot send to ${peerId}: channel not open`, { dataChannel });
+            debugClient('connection', `Cannot send to ${peerId}: channel not open`, { dataChannel });
         }
     };
 
@@ -363,7 +370,7 @@ class Socket extends Component<SocketProviderProps, SocketState> {
             if (dataChannel.readyState === 'open') {
                 dataChannel.send(message);
             } else {
-                debugClient('socket', `Cannot send to ${peerId}: channel not open`, { dataChannel });
+                debugClient('connection', `Cannot send to ${peerId}: channel not open`, { dataChannel });
             }
         });
     };
@@ -373,17 +380,17 @@ class Socket extends Component<SocketProviderProps, SocketState> {
         this.client?.emit(event, data);
     };
 
-    on = (event: string, listener: SocketListener) => {
+    on = (event: string, listener: ConnectionListener) => {
         this.client?.on(event, listener);
     };
 
-    off = (event: string, listener: SocketListener) => {
+    off = (event: string, listener: ConnectionListener) => {
         this.client?.off(event, listener);
     };
 
     render() {
-        return <SocketContext.Provider value={this.state}>{this.props.children}</SocketContext.Provider>;
+        return <ConnectionContext.Provider value={this.state}>{this.props.children}</ConnectionContext.Provider>;
     }
 }
 
-export const SocketProvider = compose(withPathname)(Socket);
+export const ConnectionProvider = compose(withPathname)(Connection);

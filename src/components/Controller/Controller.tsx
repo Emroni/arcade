@@ -1,5 +1,5 @@
 'use client';
-import { useSocket } from '@/contexts/Socket/Socket';
+import { useConnection } from '@/contexts/Connection/Connection';
 import _ from 'lodash';
 import { TouchEvent, useMemo, useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
@@ -14,7 +14,7 @@ const joystickReset = {
 export function Controller() {
     const [buttons, setButtons] = useState<ControllerButtons>({ a: false, b: false });
     const [joystick, setJoystick] = useState<ControllerJoystick>({ ...joystickReset, angle: 0 });
-    const socket = useSocket();
+    const connection = useConnection();
     const joystickRef = useRef<SVGGElement>(null);
     const joystickObserver = useResizeObserver({
         ref: joystickRef as any,
@@ -34,7 +34,7 @@ export function Controller() {
         setButtons(newButtons);
 
         // Notify host
-        socket.sendToHost({
+        connection.sendToHost({
             type: 'updatePlayer',
             payload: {
                 buttons: [newButtons.a, newButtons.b],
@@ -60,7 +60,7 @@ export function Controller() {
         setJoystick(newJoystick);
 
         // Notify host
-        socket.sendToHost({
+        connection.sendToHost({
             type: 'updatePlayer',
             payload: {
                 joystick: [newJoystick.amount, newJoystick.angle],
@@ -77,7 +77,7 @@ export function Controller() {
         setJoystick(newJoystick);
 
         // Notify host
-        socket.sendToHost({
+        connection.sendToHost({
             type: 'updatePlayer',
             payload: {
                 joystick: [newJoystick.amount, newJoystick.angle],

@@ -1,5 +1,5 @@
+import { ConnectionProvider } from '@/contexts/Connection/Connection';
 import { GameProvider } from '@/contexts/Game/Game';
-import { SocketProvider } from '@/contexts/Socket/Socket';
 import type { Metadata } from 'next';
 import './globals.css';
 
@@ -11,9 +11,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     return (
         <html lang="en" suppressHydrationWarning={process.env.NODE_ENV !== 'production'}>
             <body>
-                <SocketProvider>
+                <ConnectionProvider>
                     <GameProvider>{children}</GameProvider>
-                </SocketProvider>
+                </ConnectionProvider>
             </body>
         </html>
     );
