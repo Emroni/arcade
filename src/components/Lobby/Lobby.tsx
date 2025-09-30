@@ -1,11 +1,13 @@
 'use client';
 import { useGame } from '@/contexts/Game/Game';
+import { useSocket } from '@/contexts/Socket/Socket';
 import Link from 'next/link';
 import QRCode from 'react-qr-code';
 import { GameContainer } from '../GameContainer/GameContainer';
 
 export function Lobby() {
     const game = useGame();
+    const socket = useSocket();
 
     return (
         <div className="flex h-screen">
@@ -13,7 +15,10 @@ export function Lobby() {
 
             {/* Player list */}
             <aside className="flex flex-col p-4 w-50">
-                <div className="flex-1">Players: {Object.values(game.players).length}</div>
+                <div className="flex-1">
+                    <div>Host: {socket.host ? 'true' : 'false'}</div>
+                    <div>Players: {Object.values(game.players).length}</div>
+                </div>
                 <div>
                     <Link className="underline" href="/player">
                         Join now

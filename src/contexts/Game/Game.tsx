@@ -79,7 +79,7 @@ class Game extends Component<GameProviderProps, GameState> {
     };
 
     handleAddPlayers = (players: Player[]) => {
-        debugClient('player', 'Added', players);
+        debugClient('game', 'Added players', players);
 
         // Add players to state
         this.setState(prevState => {
@@ -100,7 +100,7 @@ class Game extends Component<GameProviderProps, GameState> {
     };
 
     handleRemovePlayers = (playerIds: string[]) => {
-        debugClient('player', 'Removed', playerIds);
+        debugClient('game', 'Removed players', playerIds);
 
         // Remove players from state
         this.setState(prevState => {

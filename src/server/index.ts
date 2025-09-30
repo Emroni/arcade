@@ -15,6 +15,7 @@ console.log(`Server ready on port ${process.env.SERVER_PORT}`);
 
 // Initialize modules
 players.init(io);
+viewers.init(io);
 
 // Handle connections
 io.on('connection', socket => {
@@ -28,6 +29,6 @@ io.on('connection', socket => {
     });
 
     socket.on('registerViewer', () => {
-        viewers.register(socket, Object.values(players.map));
+        viewers.register(socket, players.list);
     });
 });

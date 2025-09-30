@@ -3,6 +3,7 @@ import _ from 'lodash';
 const enabled = process.argv.includes('--debug') || process.env.NODE_ENV === 'development';
 
 const clientTypes: Record<string, string> = {
+    game: '#ae00ff',
     player: '#0099ff',
     socket: '#fff700',
     viewer: '#aa00aa',

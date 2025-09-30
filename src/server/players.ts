@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 
 let io: Server;
 
+export const list: Player[] = [];
 export const map: PlayerMap = {};
 
 export function init(server: Server) {
@@ -26,7 +27,8 @@ export function register(socket: Socket) {
         velocity: [0, 0],
     };
 
-    // Add to map and room
+    // Add to list, map and room
+    list.push(player);
     map[socket.id] = player;
     socket.join('players');
 
@@ -39,12 +41,14 @@ export function register(socket: Socket) {
 
 export function unregister(socket: Socket) {
     // Check existing
-    if (!map[socket.id]) {
+    const index = list.findIndex(p => p.id === socket.id);
+    if (index === -1) {
         return;
     }
     debugServer('player', `${socket.id} unregistered`);
 
-    // Remove from list
+    // Remove from list and map
+    list.splice(index, 1);
     delete map[socket.id];
 
     // Notify viewers

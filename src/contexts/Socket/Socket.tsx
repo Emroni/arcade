@@ -26,6 +26,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         this.state = {
             connected: false,
             connecting: true,
+            host: false,
             id: null,
             emit: this.emit,
             on: this.on,
@@ -40,6 +41,7 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
         // Add client listeners
         this.client.on('connect', this.handleConnect);
         this.client.on('disconnect', this.handleDisconnect);
+        this.client.on('setHost', this.handleSetHost);
     }
 
     componentWillUnmount() {
@@ -62,6 +64,13 @@ export class SocketProvider extends Component<SocketProviderProps, SocketState> 
             connected: false,
             connecting: false,
             id: null,
+        });
+    };
+
+    handleSetHost = () => {
+        debugClient('socket', 'Set as host');
+        this.setState({
+            host: true,
         });
     };
 
