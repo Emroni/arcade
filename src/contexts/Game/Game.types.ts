@@ -1,4 +1,4 @@
-import { PlayerMap } from '@/types';
+import { ShipData } from '@/game/Ship/Ship.types';
 import { ConnectionState } from '../Connection/Connection.types';
 
 export interface GameProviderProps {
@@ -8,6 +8,9 @@ export interface GameProviderProps {
 
 export interface GameState {
     canvas: HTMLCanvasElement | null;
-    players: PlayerMap;
     mountCanvas: (container: HTMLDivElement) => void;
+}
+
+export interface GameTickPayload {
+    ships: Record<string, ShipData>;
 }

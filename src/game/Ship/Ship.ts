@@ -1,6 +1,7 @@
 import { Player } from '@/types';
 import _ from 'lodash';
 import * as PIXI from 'pixi.js';
+import { ShipData } from './Ship.types';
 
 export class Ship extends PIXI.Container {
     app: PIXI.Application;
@@ -11,15 +12,15 @@ export class Ship extends PIXI.Container {
     velocityX = 0;
     velocityY = 0;
 
-    constructor(app: PIXI.Application, player: Player) {
+    constructor(app: PIXI.Application, playerId: string) {
         // Initialize parent class
         super({
-            label: player.id,
+            label: playerId,
         });
 
         // Initialize properties
         this.app = app;
-        this.playerId = player.id;
+        this.playerId = playerId;
 
         // Add shape
         const shape = new PIXI.Graphics();
@@ -33,6 +34,18 @@ export class Ship extends PIXI.Container {
         shape.x = -16;
         shape.y = -8;
     }
+
+    get = () => {
+        return {
+            position: [this.x, this.y],
+            rotation: this.rotation,
+        } as ShipData;
+    };
+
+    set = (data: ShipData) => {
+        this.position.set(data.position[0], data.position[1]);
+        this.rotation = data.rotation;
+    };
 
     update = (data: Partial<Player>) => {
         // Parse joystick

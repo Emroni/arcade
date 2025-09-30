@@ -1,12 +1,11 @@
 'use client';
 import { debugClient } from '@/debug';
 import { Ship } from '@/game';
-import { Player } from '@/types';
 import { compose } from '@/utils';
 import * as PIXI from 'pixi.js';
 import { Component, createContext, useContext } from 'react';
 import { withConnection } from '../Connection/Connection';
-import { GameProviderProps, GameState } from './Game.types';
+import { GameProviderProps, GameState, GameTickPayload } from './Game.types';
 
 export const GameContext = createContext<GameState>({} as GameState);
 
@@ -35,7 +34,6 @@ class Game extends Component<GameProviderProps, GameState> {
         // Initialize state
         this.state = {
             canvas: null,
-            players: {},
             mountCanvas: this.mountCanvas,
         };
     }
@@ -50,10 +48,11 @@ class Game extends Component<GameProviderProps, GameState> {
             width: 640,
         });
 
-        // Add socket listeners
+        // Add connection listeners
         connection.on('addPlayers', this.handleAddPlayers);
         connection.on('removePlayers', this.handleRemovePlayers);
         connection.on('updatePlayer', this.handleUpdatePlayer);
+        connection.on('gameTick', this.handleGameTick);
 
         // Add canvas to state
         this.setState({
@@ -61,57 +60,51 @@ class Game extends Component<GameProviderProps, GameState> {
         });
 
         // Start game loop
-        this.app.ticker.add(this.tick);
+        if (this.props.connection.host) {
+            this.app.ticker.add(this.tick);
+        }
     };
 
-    componentWillUnmount(): void {
+    componentWillUnmount() {
         const { connection } = this.props;
 
-        // Remove socket listeners
+        // Remove connection listeners
         connection.off('addPlayers', this.handleAddPlayers);
         connection.off('removePlayers', this.handleRemovePlayers);
         connection.off('updatePlayer', this.handleUpdatePlayer);
     }
+
+    debug = (message: string, ...args: any[]) => {
+        debugClient('game', message, ...args);
+    };
+
+    updateState = async (
+        newState: Partial<GameState> | ((prevState: GameState) => Partial<GameState> | null) | null
+    ) => {
+        return new Promise<GameState>(resolve => {
+            this.setState(newState as GameState, () => {
+                resolve(this.state);
+            });
+        });
+    };
 
     mountCanvas = (container: HTMLDivElement) => {
         container.appendChild(this.app.canvas);
         this.app.resizeTo = container;
     };
 
-    handleAddPlayers = (players: Player[]) => {
-        debugClient('game', 'Added players', players);
-
-        // Add players to state
-        this.setState(prevState => {
-            const map = { ...prevState.players };
-            players.forEach(player => {
-                map[player.id] = player;
-            });
-            return {
-                players: map,
-            };
-        });
+    handleAddPlayers = (playerIds: string[]) => {
+        this.debug('Add players', playerIds);
 
         // Add ships to canvas
-        players.forEach(player => {
-            const ship = new Ship(this.app, player);
+        playerIds.forEach(playerId => {
+            const ship = new Ship(this.app, playerId);
             this.shipsContainer.addChild(ship);
         });
     };
 
     handleRemovePlayers = (playerIds: string[]) => {
-        debugClient('game', 'Removed players', playerIds);
-
-        // Remove players from state
-        this.setState(prevState => {
-            const players = { ...prevState.players };
-            playerIds.forEach(playerId => {
-                delete players[playerId];
-            });
-            return {
-                players,
-            };
-        });
+        this.debug('Remove players', playerIds);
 
         // Remove ships from canvas
         playerIds.forEach(playerId => {
@@ -120,27 +113,34 @@ class Game extends Component<GameProviderProps, GameState> {
         });
     };
 
-    handleUpdatePlayer = (data: Partial<Player> & { id: string }) => {
-        // Update player in state
-        this.setState(prevState => ({
-            players: {
-                ...prevState.players,
-                [data.id]: {
-                    ...prevState.players[data.id],
-                    ...data,
-                },
-            },
-        }));
-
+    handleUpdatePlayer = (payload: any, playerId?: string) => {
         // Update ship
-        const ship = this.shipsContainer.children.find(s => s.playerId === data.id);
-        ship?.update(data);
+        const ship = this.shipsContainer.children.find(s => s.playerId === playerId);
+        ship?.update(payload);
+    };
+
+    handleGameTick = (payload: GameTickPayload) => {
+        // Set ships
+        this.shipsContainer.children.map(ship => {
+            const shipData = payload.ships[ship.playerId];
+            if (shipData) {
+                ship.set(shipData);
+            }
+        });
     };
 
     tick = () => {
         // Tick ships
         for (const ship of this.shipsContainer.children) {
             ship.tick();
+        }
+
+        // Notify viewers
+        if (this.props.connection.host) {
+            const data: GameTickPayload = {
+                ships: Object.fromEntries(this.shipsContainer.children.map(ship => [ship.playerId, ship.get()])),
+            };
+            this.props.connection.notifyViewers('gameTick', data);
         }
     };
 

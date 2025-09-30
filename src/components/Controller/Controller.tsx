@@ -34,11 +34,8 @@ export function Controller() {
         setButtons(newButtons);
 
         // Notify host
-        connection.sendToHost({
-            type: 'updatePlayer',
-            payload: {
-                buttons: [newButtons.a, newButtons.b],
-            },
+        connection.notifyHost('updatePlayer', {
+            buttons: [newButtons.a, newButtons.b],
         });
     }
 
@@ -60,11 +57,8 @@ export function Controller() {
         setJoystick(newJoystick);
 
         // Notify host
-        connection.sendToHost({
-            type: 'updatePlayer',
-            payload: {
-                joystick: [newJoystick.amount, newJoystick.angle],
-            },
+        connection.notifyHost('updatePlayer', {
+            joystick: [newJoystick.amount, newJoystick.angle],
         });
     }
 
@@ -77,11 +71,8 @@ export function Controller() {
         setJoystick(newJoystick);
 
         // Notify host
-        connection.sendToHost({
-            type: 'updatePlayer',
-            payload: {
-                joystick: [newJoystick.amount, newJoystick.angle],
-            },
+        connection.notifyHost('updatePlayer', {
+            joystick: [newJoystick.amount, newJoystick.angle],
         });
     }
 

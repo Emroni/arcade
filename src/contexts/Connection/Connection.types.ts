@@ -1,4 +1,4 @@
-export type ConnectionListener = (...args: any[]) => void;
+export type ConnectionListener = (payload: any, peerId?: string) => void;
 
 export interface ConnectionProviderProps {
     children: React.ReactNode;
@@ -11,12 +11,12 @@ export interface ConnectionState {
     host: boolean;
     id: string | null;
     players: string[];
+    role: string;
     viewers: string[];
-    emit: (event: string, data: any) => void;
+    notifyHost: (event: string, payload: any) => void;
+    notifyPlayers: (event: string, payload: any) => void;
     notifyViewers: (event: string, payload: any) => void;
     off: (event: string, listener: ConnectionListener) => void;
     on: (event: string, listener: ConnectionListener) => void;
-    sendToAllPeers: (data: any) => void;
-    sendToHost: (data: any) => void;
-    sendToPeer: (peerId: string, data: any) => void;
+    trigger: (event: string, payload: any, peerId?: string) => void;
 }

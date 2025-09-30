@@ -23,6 +23,7 @@ export function withConnection(WrappedComponent: any) {
 class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     dataChannels: Map<string, RTCDataChannel> = new Map();
     hostId: string | null = null;
+    listeners: Record<string, ConnectionListener[]> = {};
     peerConnections: Map<string, RTCPeerConnection> = new Map();
     socket: Socket | null = null;
 
@@ -40,14 +41,14 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             host: false,
             id: null,
             players: [],
+            role: this.props.pathname.startsWith('/player') ? 'player' : 'viewer',
             viewers: [],
-            emit: this.emit,
+            notifyHost: this.notifyHost,
+            notifyPlayers: this.notifyPlayers,
             notifyViewers: this.notifyViewers,
             off: this.off,
             on: this.on,
-            sendToAllPeers: this.sendToAllPeers,
-            sendToHost: this.sendToHost,
-            sendToPeer: this.sendToPeer,
+            trigger: this.trigger,
         };
     }
 
@@ -60,7 +61,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         // Create client
         this.socket = io(process.env.NEXT_PUBLIC_SERVER_PATH, {
             query: {
-                role: this.props.pathname.startsWith('/player') ? 'player' : 'viewer',
+                role: this.state.role,
             },
         });
 
@@ -85,6 +86,27 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Disconnect client
         this.socket?.disconnect();
+    }
+
+    componentDidUpdate(_prevProps: Readonly<ConnectionProviderProps>, prevState: Readonly<ConnectionState>) {
+        const { players, role } = this.state;
+
+        if (role === 'viewer') {
+            // Check players
+            if (players.join() !== prevState.players.join()) {
+                // Check for added players
+                const addedPlayers = players.filter(id => !prevState.players.includes(id));
+                if (addedPlayers.length) {
+                    this.trigger('addPlayers', addedPlayers);
+                }
+
+                // Check for removed players
+                const removedPlayers = prevState.players.filter(id => !players.includes(id));
+                if (removedPlayers.length) {
+                    this.trigger('removePlayers', removedPlayers);
+                }
+            }
+        }
     }
 
     debug = (message: string, ...args: any[]) => {
@@ -345,31 +367,21 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }
     };
 
-    // Peer Message Handling
-    handlePeerMessage = (peerId: string, message: string) => {
-        try {
-            const data = JSON.parse(message);
-            this.debug(`Message from ${peerId}:`, data);
+    handlePeerMessage = async (peerId: string, message: string) => {
+        // Parse message
+        const data = JSON.parse(message);
 
-            if (!this.state.host) {
-                if (data.event === 'updatePlayers') {
-                    this.setState({ players: data.payload.players });
-                } else if (data.event === 'updateViewers') {
-                    this.setState({ viewers: data.payload.viewers });
-                }
+        // Update state if non-host viewer
+        if (!this.state.host) {
+            if (data.event === 'updatePlayers') {
+                await this.updateState({ players: data.payload.players });
+            } else if (data.event === 'updateViewers') {
+                await this.updateState({ viewers: data.payload.viewers });
             }
-        } catch (error) {
-            this.debug(`Error parsing message from ${peerId}:`, error);
         }
-    };
 
-    // WebRTC Methods
-    sendToHost = (data: any) => {
-        if (this.hostId) {
-            this.sendToPeer(this.hostId, data);
-        } else {
-            this.debug('No host to send to');
-        }
+        // Trigger listeners
+        this.trigger(data.event, data.payload, peerId);
     };
 
     sendToPeer = (peerId: string, data: any) => {
@@ -381,37 +393,67 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }
     };
 
-    sendToAllPeers = (data: any) => {
-        const message = JSON.stringify(data);
-        this.dataChannels.forEach((dataChannel, peerId) => {
-            if (dataChannel.readyState === 'open') {
-                dataChannel.send(message);
-            } else {
-                this.debug(`Cannot send to ${peerId}: channel not open`, { dataChannel });
-            }
-        });
+    // WebRTC methods
+    notifyHost = (event: string, payload: any) => {
+        if (this.hostId) {
+            this.sendToPeer(this.hostId, {
+                event,
+                payload,
+            });
+        } else {
+            this.debug('Cannot notify host: no host ID');
+        }
     };
 
-    notifyViewers = (event: string, payload: any) => {
-        this.state.viewers.forEach(viewerId => {
-            this.sendToPeer(viewerId, {
+    notifyPlayers = (event: string, payload: any) => {
+        this.state.players.forEach(id => {
+            this.sendToPeer(id, {
                 event,
                 payload,
             });
         });
     };
 
-    // Socket methods
-    emit = (event: string, data: any) => {
-        this.socket?.emit(event, data);
+    notifyViewers = (event: string, payload: any) => {
+        this.state.viewers.forEach(id => {
+            this.sendToPeer(id, {
+                event,
+                payload,
+            });
+        });
     };
 
+    // Listeners
     on = (event: string, listener: ConnectionListener) => {
-        this.socket?.on(event, listener);
+        // Add event if it doesn't exist
+        if (!this.listeners[event]) {
+            this.listeners[event] = [];
+        }
+
+        // Add listener
+        this.listeners[event].push(listener);
     };
 
     off = (event: string, listener: ConnectionListener) => {
-        this.socket?.off(event, listener);
+        // Check if event exists
+        if (!this.listeners[event]) {
+            return;
+        }
+
+        // Remove listener
+        this.listeners[event] = this.listeners[event].filter(l => l !== listener);
+
+        // Remove event if no listeners left
+        if (this.listeners[event].length === 0) {
+            delete this.listeners[event];
+        }
+    };
+
+    trigger = (event: string, payload: any, peerId?: string) => {
+        // Call event listeners
+        this.listeners[event]?.forEach(listener => {
+            listener(payload, peerId);
+        });
     };
 
     render() {
