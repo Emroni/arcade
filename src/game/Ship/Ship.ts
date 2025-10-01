@@ -1,4 +1,4 @@
-import { Player } from '@/types';
+import { Player, PlayerData } from '@/types';
 import * as PIXI from 'pixi.js';
 import { ShipData } from './Ship.types';
 
@@ -66,7 +66,7 @@ export class Ship extends PIXI.Container {
         this.shape.rotation = data.rotation;
     };
 
-    update = (data: any) => {
+    update = (data: PlayerData) => {
         // Parse color
         if (data.color) {
             this.shape.tint = data.color;

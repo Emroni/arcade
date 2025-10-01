@@ -1,7 +1,7 @@
 'use client';
 import { debugClient } from '@/debug';
-import { Ship } from '@/game';
-import { Player } from '@/types';
+import { Bullet, Ship } from '@/game';
+import { Player, PlayerData } from '@/types';
 import { compose } from '@/utils';
 import * as PIXI from 'pixi.js';
 import { Component, createContext, useContext } from 'react';
@@ -21,6 +21,7 @@ export function withGame(WrappedComponent: any) {
 class Game extends Component<GameProviderProps, GameState> {
     app: PIXI.Application;
     background?: PIXI.TilingSprite;
+    bulletsContainer: PIXI.Container<Bullet>;
     container: PIXI.Container;
     shipsContainer: PIXI.Container<Ship>;
 
@@ -33,6 +34,10 @@ class Game extends Component<GameProviderProps, GameState> {
         // Add container
         this.container = new PIXI.Container<Ship>();
         this.app.stage.addChild(this.container);
+
+        // Add bullets container
+        this.bulletsContainer = new PIXI.Container<Bullet>();
+        this.container.addChild(this.bulletsContainer);
 
         // Add ships container
         this.shipsContainer = new PIXI.Container<Ship>();
@@ -126,10 +131,20 @@ class Game extends Component<GameProviderProps, GameState> {
         this.container.position.set(centerX - size / 2, centerY - size / 2);
     };
 
-    handleHostPlayerUpdate = (payload: any, playerId?: string) => {
+    handleHostPlayerUpdate = (payload: PlayerData, playerId?: string) => {
         // Update ship
         const ship = this.shipsContainer.children.find(s => s.playerId === playerId);
         ship?.update(payload);
+
+        // Add bullet if any button is pressed
+        if (ship && (payload.buttons?.[0] || payload.buttons?.[1])) {
+            let bullet = this.bulletsContainer.children.find(b => !b.playerId);
+            if (!bullet) {
+                bullet = new Bullet(this.app);
+                this.bulletsContainer.addChild(bullet);
+            }
+            bullet.fire(ship);
+        }
     };
 
     handleViewersPlayersAdd = (players: Player[]) => {
@@ -153,6 +168,18 @@ class Game extends Component<GameProviderProps, GameState> {
     };
 
     handleViewersGameTick = (payload: GameTickPayload) => {
+        // Make sure there are enough bullets
+        while (payload.bullets.length > this.bulletsContainer.children.length) {
+            const bullet = new Bullet(this.app);
+            this.bulletsContainer.addChild(bullet);
+        }
+
+        // Set bullets
+        this.bulletsContainer.children.map((bullet, index) => {
+            const bulletData = payload.bullets[index];
+            bullet.set(bulletData);
+        });
+
         // Set ships
         this.shipsContainer.children.map(ship => {
             const shipData = payload.ships[ship.playerId];
@@ -163,6 +190,11 @@ class Game extends Component<GameProviderProps, GameState> {
     };
 
     tick = () => {
+        // Tick bullets
+        for (const bullet of this.bulletsContainer.children) {
+            bullet.tick();
+        }
+
         // Tick ships
         for (const ship of this.shipsContainer.children) {
             ship.tick();
@@ -171,6 +203,7 @@ class Game extends Component<GameProviderProps, GameState> {
         // Notify viewers
         if (this.props.connection.host) {
             const data: GameTickPayload = {
+                bullets: this.bulletsContainer.children.map(bullet => bullet.get()),
                 ships: Object.fromEntries(this.shipsContainer.children.map(ship => [ship.playerId, ship.get()])),
             };
             this.props.connection.notifyViewers('viewers.game.tick', data);

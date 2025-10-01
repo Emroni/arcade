@@ -1,3 +1,4 @@
+import { BulletData } from '@/game/Bullet/Bullet.types';
 import { ShipData } from '@/game/Ship/Ship.types';
 import { ConnectionState } from '../Connection/Connection.types';
 
@@ -12,5 +13,6 @@ export interface GameState {
 }
 
 export interface GameTickPayload {
+    bullets: BulletData[];
     ships: Record<string, ShipData>;
 }
