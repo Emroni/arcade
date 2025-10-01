@@ -161,12 +161,23 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
     // WebRTC Connection Management
     getRtcConnection = async () => {
-        // Fetch ICE servers if not already fetched
+        // Fetch Metered TURN servers
+        if (!this.rtcServers && process.env.NEXT_PUBLIC_METERED_API_KEY) {
+            try {
+                const response = await fetch(
+                    `https://arcade.metered.live/api/v1/turn/credentials?apiKey=${process.env.NEXT_PUBLIC_METERED_API_KEY}`
+                );
+                this.rtcServers = await response.json();
+            } catch {}
+        }
+
+        // Fallback to public Google STUN servers
         if (!this.rtcServers) {
-            const response = await fetch(
-                `https://arcade.metered.live/api/v1/turn/credentials?apiKey=${process.env.NEXT_PUBLIC_METERED_API_KEY}`
-            );
-            this.rtcServers = await response.json();
+            this.rtcServers = [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+            ];
         }
 
         // Create new connection
