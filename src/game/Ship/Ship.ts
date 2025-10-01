@@ -1,5 +1,4 @@
 import { Player } from '@/types';
-import _ from 'lodash';
 import * as PIXI from 'pixi.js';
 import { ShipData } from './Ship.types';
 
@@ -9,8 +8,11 @@ export class Ship extends PIXI.Container {
     playerId: string;
     shape: PIXI.Graphics;
 
+    joystickAmount = 0;
+    joystickAngle = 0;
     velocityDecay = 0.995;
-    velocityMax = 3;
+    velocityEase = 0.1;
+    velocityMultiplier = 20;
     velocityX = 0;
     velocityY = 0;
 
@@ -80,18 +82,29 @@ export class Ship extends PIXI.Container {
         if (data.joystick) {
             const [amount, angle] = data.joystick;
 
+            // Update values
+            this.joystickAngle = angle;
+            this.joystickAmount = amount;
+
             // Update rotation
             this.shape.rotation = angle;
-
-            // Update velocity
-            this.velocityX = this.velocityX + Math.cos(angle) * amount * this.velocityDecay;
-            this.velocityX = _.clamp(this.velocityX, -this.velocityMax, this.velocityMax);
-            this.velocityY = this.velocityY + Math.sin(angle) * amount * this.velocityDecay;
-            this.velocityY = _.clamp(this.velocityY, -this.velocityMax, this.velocityMax);
         }
     };
 
     tick = () => {
+        // Update velocity
+        if (this.joystickAmount) {
+            const acceleration = this.joystickAmount * this.velocityMultiplier;
+            const targetVelocityX = Math.cos(this.joystickAngle) * acceleration;
+            const targetVelocityY = Math.sin(this.joystickAngle) * acceleration;
+            this.velocityX += (targetVelocityX - this.velocityX) * this.velocityEase;
+            this.velocityY += (targetVelocityY - this.velocityY) * this.velocityEase;
+        }
+
+        // Decay velocity
+        this.velocityX *= this.velocityDecay;
+        this.velocityY *= this.velocityDecay;
+
         // Update position
         this.x += this.velocityX;
         this.y += this.velocityY;
