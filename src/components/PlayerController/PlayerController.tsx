@@ -33,7 +33,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         setButtons(newButtons);
 
         // Notify host
-        connection.notifyHost('updatePlayer', {
+        connection.notifyHost('host.player.update', {
             buttons: [newButtons.a, newButtons.b],
         });
     }
@@ -56,7 +56,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         setJoystick(newJoystick);
 
         // Notify host
-        connection.notifyHost('updatePlayer', {
+        connection.notifyHost('host.player.update', {
             joystick: [newJoystick.amount, newJoystick.angle],
         });
     }
@@ -70,7 +70,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         setJoystick(newJoystick);
 
         // Notify host
-        connection.notifyHost('updatePlayer', {
+        connection.notifyHost('host.player.update', {
             joystick: [newJoystick.amount, newJoystick.angle],
         });
     }

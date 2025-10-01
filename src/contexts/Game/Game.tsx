@@ -59,10 +59,10 @@ class Game extends Component<GameProviderProps, GameState> {
         this.background.anchor.set(0.5);
 
         // Add listeners
-        connection.on('addPlayers', this.handleAddPlayers);
-        connection.on('gameTick', this.handleGameTick);
-        connection.on('removePlayers', this.handleRemovePlayers);
-        connection.on('updatePlayer', this.handleUpdatePlayer);
+        connection.on('host.player.update', this.handleHostPlayerUpdate);
+        connection.on('viewers.game.tick', this.handleViewersGameTick);
+        connection.on('viewers.players.add', this.handleViewersPlayersAdd);
+        connection.on('viewers.players.remove', this.handleViewersPlayersRemove);
         window.addEventListener('resize', this.handleResize);
 
         // Update state
@@ -80,10 +80,10 @@ class Game extends Component<GameProviderProps, GameState> {
         const { connection } = this.props;
 
         // Remove listeners
-        connection.off('addPlayers', this.handleAddPlayers);
-        connection.off('gameTick', this.handleGameTick);
-        connection.off('removePlayers', this.handleRemovePlayers);
-        connection.off('updatePlayer', this.handleUpdatePlayer);
+        connection.off('host.player.update', this.handleHostPlayerUpdate);
+        connection.off('viewers.game.tick', this.handleViewersGameTick);
+        connection.off('viewers.players.add', this.handleViewersPlayersAdd);
+        connection.off('viewers.players.remove', this.handleViewersPlayersRemove);
         window.removeEventListener('resize', this.handleResize);
     }
 
@@ -124,7 +124,13 @@ class Game extends Component<GameProviderProps, GameState> {
         this.container.position.set(centerX - size / 2, centerY - size / 2);
     };
 
-    handleAddPlayers = (players: Player[]) => {
+    handleHostPlayerUpdate = (payload: any, playerId?: string) => {
+        // Update ship
+        const ship = this.shipsContainer.children.find(s => s.playerId === playerId);
+        ship?.update(payload);
+    };
+
+    handleViewersPlayersAdd = (players: Player[]) => {
         this.debug('Add players', players);
 
         // Add ships to canvas
@@ -134,7 +140,7 @@ class Game extends Component<GameProviderProps, GameState> {
         });
     };
 
-    handleRemovePlayers = (playerIds: string[]) => {
+    handleViewersPlayersRemove = (playerIds: string[]) => {
         this.debug('Remove players', playerIds);
 
         // Remove ships from canvas
@@ -144,13 +150,7 @@ class Game extends Component<GameProviderProps, GameState> {
         });
     };
 
-    handleUpdatePlayer = (payload: any, playerId?: string) => {
-        // Update ship
-        const ship = this.shipsContainer.children.find(s => s.playerId === playerId);
-        ship?.update(payload);
-    };
-
-    handleGameTick = (payload: GameTickPayload) => {
+    handleViewersGameTick = (payload: GameTickPayload) => {
         // Set ships
         this.shipsContainer.children.map(ship => {
             const shipData = payload.ships[ship.playerId];
@@ -171,7 +171,7 @@ class Game extends Component<GameProviderProps, GameState> {
             const data: GameTickPayload = {
                 ships: Object.fromEntries(this.shipsContainer.children.map(ship => [ship.playerId, ship.get()])),
             };
-            this.props.connection.notifyViewers('gameTick', data);
+            this.props.connection.notifyViewers('viewers.game.tick', data);
         }
     };
 

@@ -45,7 +45,7 @@ io.on('connection', socket => {
 
         // Notify host
         if (host && host.id !== socket.id) {
-            host.emit('removePeer', {
+            host.emit('host.peer.remove', {
                 id: socket.id,
                 role,
             });
@@ -59,7 +59,7 @@ io.on('connection', socket => {
             // Pick new host
             if (viewers.length > 0) {
                 host = viewers[0];
-                host.emit('setHost');
+                host.emit('host.set');
                 debugServer(role, `[${host.id}] Set as new host`);
             }
         }
@@ -69,37 +69,37 @@ io.on('connection', socket => {
     if (!host && role === 'viewer') {
         host = socket;
         debugServer(role, `[${socket.id}] Set as host`);
-        socket.emit('setHost');
+        socket.emit('host.set');
     }
 
     // Notify host
     if (host && host.id !== socket.id) {
-        host.emit('addPeer', {
+        host.emit('host.peer.add', {
             id: socket.id,
             role,
         });
     }
 
     // WebRTC signaling relay
-    socket.on('webrtcOffer', data => {
+    socket.on('webrtc.offer', data => {
         debugServer('webrtc', `Relaying offer from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('webrtcOffer', {
+        io.to(data.target).emit('webrtc.offer', {
             offer: data.offer,
             from: socket.id,
         });
     });
 
-    socket.on('webrtcAnswer', data => {
+    socket.on('webrtc.answer', data => {
         debugServer('webrtc', `Relaying answer from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('webrtcAnswer', {
+        io.to(data.target).emit('webrtc.answer', {
             answer: data.answer,
             from: socket.id,
         });
     });
 
-    socket.on('iceCandidate', data => {
+    socket.on('ice.candidate', data => {
         debugServer('webrtc', `Relaying ICE candidate from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('iceCandidate', {
+        io.to(data.target).emit('ice.candidate', {
             candidate: data.candidate,
             from: socket.id,
         });

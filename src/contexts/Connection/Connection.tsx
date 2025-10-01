@@ -67,18 +67,18 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
 
         // Add connection listeners
-        this.on('addPlayer', this.addPlayer);
-        this.on('removePlayer', this.removePlayer);
+        this.on('host.player.add', this.handleHostPlayerAdd);
+        this.on('host.player.remove', this.handleHostPlayerRemove);
 
         // Add socket listeners
-        this.socket.on('addPeer', this.handleAddPeer);
         this.socket.on('connect', this.handleConnect);
         this.socket.on('disconnect', this.handleDisconnect);
-        this.socket.on('iceCandidate', this.handleIceCandidate);
-        this.socket.on('removePeer', this.handleRemovePeer);
-        this.socket.on('setHost', this.handleSetHost);
-        this.socket.on('webrtcAnswer', this.handleWebRTCAnswer);
-        this.socket.on('webrtcOffer', this.handleWebRTCOffer);
+        this.socket.on('host.peer.add', this.handleHostPeerAdd);
+        this.socket.on('host.peer.remove', this.handleHostPeerRemove);
+        this.socket.on('host.set', this.handleHostSet);
+        this.socket.on('ice.candidate', this.handleIceCandidate);
+        this.socket.on('webrtc.answer', this.handleWebRTCAnswer);
+        this.socket.on('webrtc.offer', this.handleWebRTCOffer);
     }
 
     componentWillUnmount() {
@@ -124,7 +124,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
     };
 
-    handleSetHost = () => {
+    handleHostSet = () => {
         this.debug('Set as host');
         this.setState({
             host: true,
@@ -132,7 +132,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     // Peer connection handlers
-    handleAddPeer = (peer: ConnectionPeer) => {
+    handleHostPeerAdd = (peer: ConnectionPeer) => {
         this.debug('Add peer', peer);
 
         // If we're the host, create connection to this new peer
@@ -141,7 +141,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }
     };
 
-    handleRemovePeer = (peer: ConnectionPeer) => {
+    handleHostPeerRemove = (peer: ConnectionPeer) => {
         this.debug('Remove peer', peer);
 
         // Close and remove peer connection
@@ -155,7 +155,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Remove player
         if (peer.role === 'player') {
-            this.removePlayer(peer.id);
+            this.handleHostPlayerRemove(peer.id);
         }
     };
 
@@ -228,7 +228,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
                 this.debug(`Sending ICE candidate to ${peer.id}`);
-                this.socket?.emit('iceCandidate', {
+                this.socket?.emit('ice.candidate', {
                     candidate: event.candidate,
                     target: peer.id,
                 });
@@ -248,7 +248,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             await peerConnection.setLocalDescription(offer);
             this.debug(`Offer created and set for ${peer.id}`);
 
-            this.socket?.emit('webrtcOffer', {
+            this.socket?.emit('webrtc.offer', {
                 offer: offer,
                 target: peer.id,
             });
@@ -308,7 +308,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
                 this.debug('Sending ICE candidate to host');
-                this.socket?.emit('iceCandidate', {
+                this.socket?.emit('ice.candidate', {
                     candidate: event.candidate,
                     target: data.from,
                 });
@@ -322,7 +322,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
 
-            this.socket?.emit('webrtcAnswer', {
+            this.socket?.emit('webrtc.answer', {
                 answer: answer,
                 target: data.from,
             });
@@ -475,10 +475,10 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
 
         // Notify host
-        this.notifyHost('addPlayer', player);
+        this.notifyHost('host.player.add', player);
     };
 
-    addPlayer = async (player: Player) => {
+    handleHostPlayerAdd = async (player: Player) => {
         this.debug('Add player', player);
 
         // Update state
@@ -487,11 +487,11 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }));
 
         // Notify viewers and trigger event
-        this.notifyViewers('addPlayers', [player]);
-        this.trigger('addPlayers', [player]);
+        this.notifyViewers('viewers.players.add', [player]);
+        this.trigger('viewers.players.add', [player]);
     };
 
-    removePlayer = async (playerId: string) => {
+    handleHostPlayerRemove = async (playerId: string) => {
         this.debug('Remove player', playerId);
 
         // Update state
@@ -500,8 +500,8 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }));
 
         // Notify viewers and trigger event
-        this.notifyViewers('removePlayers', [playerId]);
-        this.trigger('removePlayers', [playerId]);
+        this.notifyViewers('viewers.players.remove', [playerId]);
+        this.trigger('viewers.players.remove', [playerId]);
     };
 
     updatePlayer = async (data: PlayerData) => {
@@ -525,7 +525,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }
 
         // Notify host
-        this.notifyHost('updatePlayer', data);
+        this.notifyHost('host.player.update', data);
     };
 
     // Viewers
@@ -539,7 +539,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Notify viewer
         this.sendToPeer(viewerId, {
-            event: 'addPlayers',
+            event: 'viewers.player.add',
             payload: this.state.players,
         });
     };
