@@ -550,7 +550,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Notify viewer
         this.sendToPeer(viewerId, {
-            event: 'viewers.player.add',
+            event: 'viewers.players.add',
             payload: this.state.players,
         });
     };
