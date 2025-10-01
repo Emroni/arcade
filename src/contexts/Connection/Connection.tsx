@@ -30,7 +30,11 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     socket: Socket | null = null;
 
     rtcConfiguration = {
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+        ],
     };
 
     constructor(props: ConnectionProviderProps) {
