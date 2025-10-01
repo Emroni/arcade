@@ -20,7 +20,9 @@ export function Sidebar() {
                 <div>Players: {connection.players.length}</div>
                 <ul className="list-disc list-inside">
                     {connection.players.map(player => (
-                        <li key={player.id}>{player.name}</li>
+                        <li key={player.id}>
+                            {player.name} ({player.id})
+                        </li>
                     ))}
                 </ul>
             </div>

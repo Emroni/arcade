@@ -503,7 +503,13 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Store config data in local storage
         if (data.color || data.name) {
-            localStorage.setItem('connection.player', JSON.stringify(newState.player));
+            localStorage.setItem(
+                'connection.player',
+                JSON.stringify({
+                    color: newState.player?.color,
+                    name: newState.player?.name,
+                })
+            );
         }
 
         // Notify host
