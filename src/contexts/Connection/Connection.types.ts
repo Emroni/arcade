@@ -18,5 +18,5 @@ export interface ConnectionState {
     notifyViewers: (event: string, payload: any) => void;
     off: (event: string, listener: ConnectionListener) => void;
     on: (event: string, listener: ConnectionListener) => void;
-    trigger: (event: string, payload: any, peerId?: string) => void;
+    trigger: (event: string, payload?: any, peerId?: string) => void;
 }

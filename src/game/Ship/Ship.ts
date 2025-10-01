@@ -1,11 +1,12 @@
-import { Player } from '@/types';
 import _ from 'lodash';
 import * as PIXI from 'pixi.js';
 import { ShipData } from './Ship.types';
 
 export class Ship extends PIXI.Container {
     app: PIXI.Application;
+    nameText: PIXI.Text;
     playerId: string;
+    shape: PIXI.Graphics;
 
     velocityDecay = 0.995;
     velocityMax = 3;
@@ -22,38 +23,62 @@ export class Ship extends PIXI.Container {
         this.app = app;
         this.playerId = playerId;
 
+        this.x = 500;
+        this.y = 500;
+
         // Add shape
-        const shape = new PIXI.Graphics();
-        this.addChild(shape);
-        shape.clear();
-        shape.moveTo(0, 0);
-        shape.lineTo(32, 8);
-        shape.lineTo(0, 16);
-        shape.lineTo(0, 0);
-        shape.fill('white');
-        shape.x = -16;
-        shape.y = -8;
+        this.shape = new PIXI.Graphics();
+        this.addChild(this.shape);
+        this.shape.clear();
+        this.shape.moveTo(0, 0);
+        this.shape.lineTo(32, 8);
+        this.shape.lineTo(0, 16);
+        this.shape.lineTo(0, 0);
+        this.shape.fill('white');
+        this.shape.pivot.set(16, 8);
+
+        // Add name text
+        this.nameText = new PIXI.Text({
+            style: new PIXI.TextStyle({
+                fill: '#ffffff',
+                fontSize: 12,
+            }),
+            text: 'Player',
+        });
+        this.addChild(this.nameText);
+        this.nameText.y = 16;
     }
 
     get = () => {
         return {
             position: [this.x, this.y],
-            rotation: this.rotation,
+            rotation: this.shape.rotation,
         } as ShipData;
     };
 
     set = (data: ShipData) => {
         this.position.set(data.position[0], data.position[1]);
-        this.rotation = data.rotation;
+        this.shape.rotation = data.rotation;
     };
 
-    update = (data: Partial<Player>) => {
+    update = (data: any) => {
+        // Parse color
+        if (data.color) {
+            this.shape.tint = data.color;
+        }
+
+        // Parse name
+        if (data.name) {
+            this.nameText.text = data.name;
+            this.nameText.x = -this.nameText.width / 2;
+        }
+
         // Parse joystick
         if (data.joystick) {
             const [amount, angle] = data.joystick;
 
             // Update rotation
-            this.rotation = angle;
+            this.shape.rotation = angle;
 
             // Update velocity
             this.velocityX = this.velocityX + Math.cos(angle) * amount * this.velocityDecay;

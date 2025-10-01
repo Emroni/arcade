@@ -66,9 +66,10 @@ class Game extends Component<GameProviderProps, GameState> {
 
         // Add listeners
         connection.on('addPlayers', this.handleAddPlayers);
+        connection.on('connectPlayer', this.handleConnectPlayer);
+        connection.on('gameTick', this.handleGameTick);
         connection.on('removePlayers', this.handleRemovePlayers);
         connection.on('updatePlayer', this.handleUpdatePlayer);
-        connection.on('gameTick', this.handleGameTick);
         window.addEventListener('resize', this.handleResize);
 
         // Update state
@@ -92,6 +93,8 @@ class Game extends Component<GameProviderProps, GameState> {
 
         // Remove listeners
         connection.off('addPlayers', this.handleAddPlayers);
+        connection.off('connectPlayer', this.handleConnectPlayer);
+        connection.off('gameTick', this.handleGameTick);
         connection.off('removePlayers', this.handleRemovePlayers);
         connection.off('updatePlayer', this.handleUpdatePlayer);
         window.removeEventListener('resize', this.handleResize);
@@ -136,7 +139,7 @@ class Game extends Component<GameProviderProps, GameState> {
 
     updateConfig = async (newConfig: Partial<GameConfig>) => {
         // Update state
-        await this.updateState({
+        const newState = await this.updateState({
             config: {
                 ...this.state.config,
                 ...newConfig,
@@ -144,7 +147,10 @@ class Game extends Component<GameProviderProps, GameState> {
         });
 
         // Store in local storage
-        localStorage.setItem('game.config', JSON.stringify(this.state.config));
+        localStorage.setItem('game.config', JSON.stringify(newState.config));
+
+        // Notify host
+        this.props.connection.notifyHost('updatePlayer', newState.config);
     };
 
     handleAddPlayers = (playerIds: string[]) => {
@@ -165,6 +171,13 @@ class Game extends Component<GameProviderProps, GameState> {
             const ship = this.shipsContainer.getChildByLabel(playerId);
             ship?.removeFromParent();
         });
+    };
+
+    handleConnectPlayer = () => {
+        this.debug('Connect player');
+
+        // Notify host of current config
+        this.props.connection.notifyHost('updatePlayer', this.state.config);
     };
 
     handleUpdatePlayer = (payload: any, playerId?: string) => {

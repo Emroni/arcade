@@ -193,15 +193,19 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         dataChannel.onopen = async () => {
             this.debug(`Data channel open with ${peerId}`);
-            await this.updateState(prevState => ({
+
+            // Update state
+            const newState = await this.updateState(prevState => ({
                 players: role === 'player' ? [...prevState.players, peerId] : prevState.players,
                 viewers: role === 'viewer' ? [...prevState.viewers, peerId] : prevState.viewers,
             }));
+
+            // Notify viewers
             this.notifyViewers('updatePlayers', {
-                players: this.state.players,
+                players: newState.players,
             });
             this.notifyViewers('updateViewers', {
-                viewers: this.state.viewers,
+                viewers: newState.viewers,
             });
         };
 
@@ -291,10 +295,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
             dataChannel.onopen = () => {
                 this.debug(`Connected to host`);
-                // TODO: Is this needed?
-                // this.setState(prevState => ({
-                //     viewers: [...prevState.viewers, data.from],
-                // }));
+                this.trigger('connectPlayer');
             };
 
             dataChannel.onmessage = event => {
@@ -449,7 +450,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }
     };
 
-    trigger = (event: string, payload: any, peerId?: string) => {
+    trigger = (event: string, payload?: any, peerId?: string) => {
         // Call event listeners
         this.listeners[event]?.forEach(listener => {
             listener(payload, peerId);
