@@ -14,5 +14,5 @@ export interface GameState {
 
 export interface GameTickPayload {
     bullets: BulletData[];
-    ships: Record<string, ShipData>;
+    ships: ShipData[];
 }

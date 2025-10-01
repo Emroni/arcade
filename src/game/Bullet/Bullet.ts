@@ -60,11 +60,6 @@ export class Bullet extends PIXI.Container {
     };
 
     tick = () => {
-        // Check if active
-        if (!this.playerId) {
-            return;
-        }
-
         // Update position
         this.x += this.velocityX;
         this.y += this.velocityY;
@@ -73,5 +68,8 @@ export class Bullet extends PIXI.Container {
         if (this.x < -10 || this.x > 1010 || this.y < -10 || this.y > 1010) {
             this.reset();
         }
+
+        // Return data
+        return this.get();
     };
 }

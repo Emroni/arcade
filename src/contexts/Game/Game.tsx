@@ -79,7 +79,7 @@ class Game extends Component<GameProviderProps, GameState> {
         if (this.props.connection.host) {
             this.app.ticker.minFPS = 20;
             this.app.ticker.maxFPS = 30;
-            this.app.ticker.add(this.tick);
+            this.app.ticker.add(this.hostTick);
         }
     };
 
@@ -175,39 +175,33 @@ class Game extends Component<GameProviderProps, GameState> {
         }
 
         // Set bullets
-        this.bulletsContainer.children.map((bullet, index) => {
+        this.bulletsContainer.children.forEach((bullet, index) => {
             const bulletData = payload.bullets[index];
-            bullet.set(bulletData);
+            if (bulletData) {
+                bullet.set(bulletData);
+            } else {
+                bullet.reset();
+            }
         });
 
         // Set ships
-        this.shipsContainer.children.map(ship => {
-            const shipData = payload.ships[ship.playerId];
-            if (shipData) {
-                ship.set(shipData);
-            }
+        payload.ships.forEach(shipData => {
+            const ship = this.shipsContainer.getChildByLabel(shipData.playerId) as Ship | null;
+            ship?.set(shipData);
         });
     };
 
-    tick = () => {
-        // Tick bullets
-        for (const bullet of this.bulletsContainer.children) {
-            bullet.tick();
-        }
-
-        // Tick ships
-        for (const ship of this.shipsContainer.children) {
-            ship.tick();
-        }
+    hostTick = () => {
+        // Tick elements
+        const bullets = this.bulletsContainer.children.filter(bullet => bullet.playerId).map(bullet => bullet.tick());
+        const ships = this.shipsContainer.children.map(ship => ship.tick());
 
         // Notify viewers
-        if (this.props.connection.host) {
-            const data: GameTickPayload = {
-                bullets: this.bulletsContainer.children.map(bullet => bullet.get()),
-                ships: Object.fromEntries(this.shipsContainer.children.map(ship => [ship.playerId, ship.get()])),
-            };
-            this.props.connection.notifyViewers('viewers.game.tick', data);
-        }
+        const payload: GameTickPayload = {
+            bullets,
+            ships,
+        };
+        this.props.connection.notifyViewers('viewers.game.tick', payload);
     };
 
     render() {

@@ -56,6 +56,7 @@ export class Ship extends PIXI.Container {
 
     get = () => {
         return {
+            playerId: this.playerId,
             position: [this.x, this.y],
             rotation: this.shape.rotation,
         } as ShipData;
@@ -114,5 +115,8 @@ export class Ship extends PIXI.Container {
         if (this.x > 1000) this.x = 0;
         if (this.y < 0) this.y = 1000;
         if (this.y > 1000) this.y = 0;
+
+        // Return data
+        return this.get();
     };
 }
