@@ -47,6 +47,7 @@ export class Ship extends PIXI.Container {
             text: player.name,
         });
         this.addChild(this.nameText);
+        this.nameText.x = -this.nameText.width / 2;
         this.nameText.y = 16;
     }
 
