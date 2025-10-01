@@ -1,10 +1,12 @@
 'use client';
 import { debugClient } from '@/debug';
 import { withPathname } from '@/hooks';
+import { Player } from '@/types';
 import { compose } from '@/utils';
+import _ from 'lodash';
 import { Component, createContext, useContext } from 'react';
 import { Socket, io } from 'socket.io-client';
-import { ConnectionListener, ConnectionProviderProps, ConnectionState } from './Connection.types';
+import { ConnectionListener, ConnectionPeer, ConnectionProviderProps, ConnectionState } from './Connection.types';
 
 const ConnectionContext = createContext<ConnectionState>({} as ConnectionState);
 
@@ -40,9 +42,10 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             connecting: true,
             host: false,
             id: null,
+            player: null,
             players: [],
             role: this.props.pathname.startsWith('/player') ? 'player' : 'viewer',
-            viewers: [],
+            viewerIds: [],
             notifyHost: this.notifyHost,
             notifyPlayers: this.notifyPlayers,
             notifyViewers: this.notifyViewers,
@@ -65,17 +68,19 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             },
         });
 
-        // Add client listeners
+        // Add connection listeners
+        this.on('addPlayer', this.addPlayer);
+        this.on('removePlayer', this.removePlayer);
+
+        // Add socket listeners
         this.socket.on('addPeer', this.handleAddPeer);
         this.socket.on('connect', this.handleConnect);
         this.socket.on('disconnect', this.handleDisconnect);
+        this.socket.on('iceCandidate', this.handleIceCandidate);
         this.socket.on('removePeer', this.handleRemovePeer);
         this.socket.on('setHost', this.handleSetHost);
-
-        // Add WebRTC signaling listeners
-        this.socket.on('webrtcOffer', this.handleWebRTCOffer);
         this.socket.on('webrtcAnswer', this.handleWebRTCAnswer);
-        this.socket.on('iceCandidate', this.handleIceCandidate);
+        this.socket.on('webrtcOffer', this.handleWebRTCOffer);
     }
 
     componentWillUnmount() {
@@ -86,27 +91,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Disconnect client
         this.socket?.disconnect();
-    }
-
-    componentDidUpdate(_prevProps: Readonly<ConnectionProviderProps>, prevState: Readonly<ConnectionState>) {
-        const { players, role } = this.state;
-
-        if (role === 'viewer') {
-            // Check players
-            if (players.join() !== prevState.players.join()) {
-                // Check for added players
-                const addedPlayers = players.filter(id => !prevState.players.includes(id));
-                if (addedPlayers.length) {
-                    this.trigger('addPlayers', addedPlayers);
-                }
-
-                // Check for removed players
-                const removedPlayers = prevState.players.filter(id => !players.includes(id));
-                if (removedPlayers.length) {
-                    this.trigger('removePlayers', removedPlayers);
-                }
-            }
-        }
     }
 
     debug = (message: string, ...args: any[]) => {
@@ -150,37 +134,36 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     // Peer connection handlers
-    handleAddPeer = (data: { id: string; role: string }) => {
-        this.debug('Add peer', data);
+    handleAddPeer = (peer: ConnectionPeer) => {
+        this.debug('Add peer', peer);
 
         // If we're the host, create connection to this new peer
         if (this.state.host) {
-            this.createPeerConnection(data.id, data.role);
+            this.createPeerConnection(peer);
         }
     };
 
-    handleRemovePeer = (data: { id: string; role: string }) => {
-        this.debug('Remove peer', data);
+    handleRemovePeer = (peer: ConnectionPeer) => {
+        this.debug('Remove peer', peer);
 
         // Close and remove peer connection
-        const peerConnection = this.peerConnections.get(data.id);
+        const peerConnection = this.peerConnections.get(peer.id);
         if (peerConnection) {
             peerConnection.close();
-            this.peerConnections.delete(data.id);
+            this.peerConnections.delete(peer.id);
         }
 
-        this.dataChannels.delete(data.id);
+        this.dataChannels.delete(peer.id);
 
-        // Update state
-        this.setState(prevState => ({
-            players: prevState.players.filter(id => id !== data.id),
-            viewers: prevState.viewers.filter(id => id !== data.id),
-        }));
+        // Remove player
+        if (peer.role === 'player') {
+            this.removePlayer(peer.id);
+        }
     };
 
     // WebRTC Connection Management
-    createPeerConnection = async (peerId: string, role: string) => {
-        this.debug(`Creating connection to ${role} peer: ${peerId}`);
+    createPeerConnection = async (peer: ConnectionPeer) => {
+        this.debug(`Creating connection to peer: ${peer.id}`, peer);
 
         const peerConnection = new RTCPeerConnection(this.rtcConfiguration);
 
@@ -189,84 +172,76 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             ordered: true,
         });
 
-        this.debug(`Data channel created for ${peerId}, initial state: ${dataChannel.readyState}`);
+        this.debug(`Data channel created for ${peer.id}, initial state: ${dataChannel.readyState}`);
 
-        dataChannel.onopen = async () => {
-            this.debug(`Data channel open with ${peerId}`);
+        dataChannel.onopen = () => {
+            this.debug(`Data channel open with ${peer.id}`);
 
-            // Update state
-            const newState = await this.updateState(prevState => ({
-                players: role === 'player' ? [...prevState.players, peerId] : prevState.players,
-                viewers: role === 'viewer' ? [...prevState.viewers, peerId] : prevState.viewers,
-            }));
-
-            // Notify viewers
-            this.notifyViewers('updatePlayers', {
-                players: newState.players,
-            });
-            this.notifyViewers('updateViewers', {
-                viewers: newState.viewers,
-            });
+            // Add viewer
+            if (peer.role === 'viewer') {
+                this.addViewer(peer.id);
+            }
         };
 
         dataChannel.onmessage = event => {
-            this.handlePeerMessage(peerId, event.data);
+            this.handlePeerMessage(peer.id, event.data);
         };
 
-        dataChannel.onclose = async () => {
-            this.debug(`Data channel closed with ${peerId}`);
-            await this.updateState(prevState => ({
-                viewers: prevState.viewers.filter(id => id !== peerId),
-            }));
-            this.notifyViewers('updateViewers', {
-                viewers: this.state.viewers,
-            });
+        dataChannel.onclose = () => {
+            this.debug(`Data channel closed with ${peer.id}`);
+
+            // Remove viewer
+            if (peer.role === 'viewer') {
+                this.setState(prevState => ({
+                    viewerIds: prevState.viewerIds.filter(id => id !== peer.id),
+                }));
+            }
         };
 
         dataChannel.onerror = error => {
-            this.debug(`Data channel error with ${peerId}:`, error);
+            this.debug(`Data channel error with ${peer.id}:`, error);
         };
 
         // Add connection state change logging
         peerConnection.onconnectionstatechange = () => {
-            this.debug(`Peer connection state with ${peerId}: ${peerConnection.connectionState}`);
+            this.debug(`Peer connection state with ${peer.id}: ${peerConnection.connectionState}`);
         };
 
         peerConnection.oniceconnectionstatechange = () => {
-            this.debug(`ICE connection state with ${peerId}: ${peerConnection.iceConnectionState}`);
+            this.debug(`ICE connection state with ${peer.id}: ${peerConnection.iceConnectionState}`);
         };
 
         // Handle ICE candidates
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
-                this.debug(`Sending ICE candidate to ${peerId}`);
+                this.debug(`Sending ICE candidate to ${peer.id}`);
                 this.socket?.emit('iceCandidate', {
                     candidate: event.candidate,
-                    target: peerId,
+                    target: peer.id,
                 });
             } else {
-                this.debug(`ICE gathering complete for ${peerId}`);
+                this.debug(`ICE gathering complete for ${peer.id}`);
             }
         };
 
         // Store connections
-        this.peerConnections.set(peerId, peerConnection);
-        this.dataChannels.set(peerId, dataChannel);
+        this.peerConnections.set(peer.id, peerConnection);
+        this.dataChannels.set(peer.id, dataChannel);
 
         // Create and send offer
         try {
-            this.debug(`Creating offer for ${peerId}`);
+            this.debug(`Creating offer for ${peer.id}`);
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
-            this.debug(`Offer created and set for ${peerId}`);
+            this.debug(`Offer created and set for ${peer.id}`);
 
             this.socket?.emit('webrtcOffer', {
                 offer: offer,
-                target: peerId,
+                target: peer.id,
             });
-            this.debug(`Offer sent to ${peerId}`);
+            this.debug(`Offer sent to ${peer.id}`);
         } catch (error) {
-            this.debug(`Error creating offer for ${peerId}:`, error);
+            this.debug(`Error creating offer for ${peer.id}:`, error);
         }
     };
 
@@ -295,7 +270,9 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
             dataChannel.onopen = () => {
                 this.debug(`Connected to host`);
-                this.trigger('connectPlayer');
+                if (this.state.role === 'player') {
+                    this.createPlayer();
+                }
             };
 
             dataChannel.onmessage = event => {
@@ -304,10 +281,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
             dataChannel.onclose = () => {
                 this.debug(`Disconnected from host`);
-                // TODO: Is this needed?
-                // this.setState(prevState => ({
-                //     viewers: prevState.viewers.filter(id => id !== data.from),
-                // }));
             };
 
             dataChannel.onerror = error => {
@@ -373,13 +346,14 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         const data = JSON.parse(message);
 
         // Update state if non-host viewer
-        if (!this.state.host) {
-            if (data.event === 'updatePlayers') {
-                await this.updateState({ players: data.payload.players });
-            } else if (data.event === 'updateViewers') {
-                await this.updateState({ viewers: data.payload.viewers });
-            }
-        }
+        // TODO: Convert into listeners
+        // if (!this.state.host) {
+        //     if (data.event === 'updatePlayers') {
+        //         await this.updateState({ players: data.payload.players });
+        //     } else if (data.event === 'updateViewers') {
+        //         await this.updateState({ viewers: data.payload.viewers });
+        //     }
+        // }
 
         // Trigger listeners
         this.trigger(data.event, data.payload, peerId);
@@ -407,8 +381,8 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     notifyPlayers = (event: string, payload: any) => {
-        this.state.players.forEach(id => {
-            this.sendToPeer(id, {
+        this.state.players.forEach(player => {
+            this.sendToPeer(player.id, {
                 event,
                 payload,
             });
@@ -416,8 +390,8 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     notifyViewers = (event: string, payload: any) => {
-        this.state.viewers.forEach(id => {
-            this.sendToPeer(id, {
+        this.state.viewerIds.forEach(viewerId => {
+            this.sendToPeer(viewerId, {
                 event,
                 payload,
             });
@@ -454,6 +428,72 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         // Call event listeners
         this.listeners[event]?.forEach(listener => {
             listener(payload, peerId);
+        });
+    };
+
+    // Players
+    createPlayer = async () => {
+        this.debug('Creating player for this client', this.state.id);
+
+        // Create player
+        const player: Player = {
+            buttons: [false, false],
+            color: `#${Math.floor(Math.random() * 16777215)
+                .toString(16)
+                .padStart(6, '0')}`,
+            id: this.state.id || '',
+            joystick: [0, 0],
+            name: `Player ${_.random(1000, 9999)}`,
+        };
+
+        // Update state
+        await this.updateState({
+            player,
+        });
+
+        // Notify host
+        this.notifyHost('addPlayer', player);
+    };
+
+    addPlayer = async (player: Player) => {
+        this.debug('Add player', player);
+
+        // Update state
+        await this.updateState(prevState => ({
+            players: [...prevState.players, player],
+        }));
+
+        // Notify viewers and trigger event
+        this.notifyViewers('addPlayers', [player]);
+        this.trigger('addPlayers', [player]);
+    };
+
+    removePlayer = async (playerId: string) => {
+        this.debug('Remove player', playerId);
+
+        // Update state
+        await this.updateState(prevState => ({
+            players: prevState.players.filter(p => p.id !== playerId),
+        }));
+
+        // Notify viewers and trigger event
+        this.notifyViewers('removePlayers', [playerId]);
+        this.trigger('removePlayers', [playerId]);
+    };
+
+    // Viewers
+    addViewer = async (viewerId: string) => {
+        this.debug('Add viewer', viewerId);
+
+        // Update state
+        await this.updateState(prevState => ({
+            viewerIds: [...prevState.viewerIds, viewerId],
+        }));
+
+        // Notify viewer
+        this.sendToPeer(viewerId, {
+            event: 'addPlayers',
+            payload: this.state.players,
         });
     };
 

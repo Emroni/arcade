@@ -6,6 +6,7 @@ import * as PIXI from 'pixi.js';
 import { Component, createContext, useContext } from 'react';
 import { withConnection } from '../Connection/Connection';
 import { GameConfig, GameProviderProps, GameState, GameTickPayload } from './Game.types';
+import { Player } from '@/types';
 
 export const GameContext = createContext<GameState>({} as GameState);
 
@@ -66,7 +67,6 @@ class Game extends Component<GameProviderProps, GameState> {
 
         // Add listeners
         connection.on('addPlayers', this.handleAddPlayers);
-        connection.on('connectPlayer', this.handleConnectPlayer);
         connection.on('gameTick', this.handleGameTick);
         connection.on('removePlayers', this.handleRemovePlayers);
         connection.on('updatePlayer', this.handleUpdatePlayer);
@@ -93,7 +93,6 @@ class Game extends Component<GameProviderProps, GameState> {
 
         // Remove listeners
         connection.off('addPlayers', this.handleAddPlayers);
-        connection.off('connectPlayer', this.handleConnectPlayer);
         connection.off('gameTick', this.handleGameTick);
         connection.off('removePlayers', this.handleRemovePlayers);
         connection.off('updatePlayer', this.handleUpdatePlayer);
@@ -153,12 +152,12 @@ class Game extends Component<GameProviderProps, GameState> {
         this.props.connection.notifyHost('updatePlayer', newState.config);
     };
 
-    handleAddPlayers = (playerIds: string[]) => {
-        this.debug('Add players', playerIds);
+    handleAddPlayers = (players: Player[]) => {
+        this.debug('Add players', players);
 
         // Add ships to canvas
-        playerIds.forEach(playerId => {
-            const ship = new Ship(this.app, playerId);
+        players.forEach(player => {
+            const ship = new Ship(this.app, player);
             this.shipsContainer.addChild(ship);
         });
     };
@@ -171,13 +170,6 @@ class Game extends Component<GameProviderProps, GameState> {
             const ship = this.shipsContainer.getChildByLabel(playerId);
             ship?.removeFromParent();
         });
-    };
-
-    handleConnectPlayer = () => {
-        this.debug('Connect player');
-
-        // Notify host of current config
-        this.props.connection.notifyHost('updatePlayer', this.state.config);
     };
 
     handleUpdatePlayer = (payload: any, playerId?: string) => {

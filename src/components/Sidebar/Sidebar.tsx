@@ -11,16 +11,16 @@ export function Sidebar() {
             <div className="flex-1">
                 <div>ID: {connection.id}</div>
                 <div>Host: {connection.host ? 'true' : 'false'}</div>
-                <div>Viewers: {connection.viewers.length}</div>
+                <div>Viewers: {connection.viewerIds.length}</div>
                 <ul className="list-disc list-inside">
-                    {connection.viewers.map(viewerId => (
+                    {connection.viewerIds.map(viewerId => (
                         <li key={viewerId}>{viewerId}</li>
                     ))}
                 </ul>
                 <div>Players: {connection.players.length}</div>
                 <ul className="list-disc list-inside">
-                    {connection.players.map(playerId => (
-                        <li key={playerId}>{playerId}</li>
+                    {connection.players.map(player => (
+                        <li key={player.id}>{player.name}</li>
                     ))}
                 </ul>
             </div>

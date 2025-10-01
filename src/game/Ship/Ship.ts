@@ -1,3 +1,4 @@
+import { Player } from '@/types';
 import _ from 'lodash';
 import * as PIXI from 'pixi.js';
 import { ShipData } from './Ship.types';
@@ -13,15 +14,15 @@ export class Ship extends PIXI.Container {
     velocityX = 0;
     velocityY = 0;
 
-    constructor(app: PIXI.Application, playerId: string) {
+    constructor(app: PIXI.Application, player: Player) {
         // Initialize parent class
         super({
-            label: playerId,
+            label: player.id,
         });
 
         // Initialize properties
         this.app = app;
-        this.playerId = playerId;
+        this.playerId = player.id;
 
         this.x = 500;
         this.y = 500;
@@ -34,7 +35,7 @@ export class Ship extends PIXI.Container {
         this.shape.lineTo(32, 8);
         this.shape.lineTo(0, 16);
         this.shape.lineTo(0, 0);
-        this.shape.fill('white');
+        this.shape.fill(player.color);
         this.shape.pivot.set(16, 8);
 
         // Add name text
@@ -43,7 +44,7 @@ export class Ship extends PIXI.Container {
                 fill: '#ffffff',
                 fontSize: 12,
             }),
-            text: 'Player',
+            text: player.name,
         });
         this.addChild(this.nameText);
         this.nameText.y = 16;
