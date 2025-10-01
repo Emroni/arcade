@@ -1,7 +1,5 @@
 import _ from 'lodash';
 
-const enabled = process.argv.includes('--debug') || process.env.NODE_ENV === 'development';
-
 const clientTypes: Record<string, string> = {
     connection: '#fff700',
     game: '#ae00ff',
@@ -20,7 +18,7 @@ const serverTypes: Record<string, string> = {
 export function debugClient(type: string, message: string, ...rest: any) {
     // Check if type is enabled by getting color
     const color = clientTypes[type];
-    if (!color || !enabled) {
+    if (!process.env.NEXT_PUBLIC_DEBUG || !color) {
         return;
     }
 
@@ -33,7 +31,7 @@ export function debugClient(type: string, message: string, ...rest: any) {
 export function debugServer(type: string, message: string, ...rest: any) {
     // Check if type is enabled
     const color = serverTypes[type];
-    if (!color || !enabled) {
+    if (!process.env.SERVER_DEBUG || !color) {
         return;
     }
 

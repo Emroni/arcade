@@ -1,10 +1,11 @@
 declare namespace NodeJS {
     export interface ProcessEnv {
         // Client configuration
+        NEXT_PUBLIC_DEBUG: string;
         NEXT_PUBLIC_SERVER_PATH: string;
 
         // Server configuration
-        SERVER_CORS_ORIGINS: string;
+        SERVER_DEBUG: string;
         SERVER_PORT: number;
     }
 }
