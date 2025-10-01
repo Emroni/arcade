@@ -1,7 +1,7 @@
 'use client';
 import { useConnection } from '@/contexts/Connection/Connection';
 import { XMarkIcon } from '@heroicons/react/24/solid';
-import { SliderPicker } from 'react-color';
+import { HuePicker } from 'react-color';
 import { PlayerConfigProps } from './PlayerConfig.types';
 
 export function PlayerConfig({ onClose }: PlayerConfigProps) {
@@ -35,8 +35,9 @@ export function PlayerConfig({ onClose }: PlayerConfigProps) {
                 {/* Color input */}
                 <div>
                     <label className="block mb-2 font-bold">Color</label>
-                    <SliderPicker
+                    <HuePicker
                         color={connection.player.color}
+                        width="100%"
                         onChange={e => connection.updatePlayer({ color: e.hex })}
                     />
                 </div>

@@ -35,8 +35,9 @@ export class Ship extends PIXI.Container {
         this.shape.lineTo(32, 8);
         this.shape.lineTo(0, 16);
         this.shape.lineTo(0, 0);
-        this.shape.fill(player.color);
+        this.shape.fill('#ffffff');
         this.shape.pivot.set(16, 8);
+        this.shape.tint = player.color || 0xffffff;
 
         // Add name text
         this.nameText = new PIXI.Text({
