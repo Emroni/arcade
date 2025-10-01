@@ -27,15 +27,8 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     hostId: string | null = null;
     listeners: Record<string, ConnectionListener[]> = {};
     peerConnections: Map<string, RTCPeerConnection> = new Map();
+    rtcServers: RTCIceServer[] | null = null;
     socket: Socket | null = null;
-
-    rtcConfiguration = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-        ],
-    };
 
     constructor(props: ConnectionProviderProps) {
         super(props);
@@ -167,10 +160,25 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     // WebRTC Connection Management
+    getRtcConnection = async () => {
+        // Fetch ICE servers if not already fetched
+        if (!this.rtcServers) {
+            const response = await fetch(
+                `https://arcade.metered.live/api/v1/turn/credentials?apiKey=${process.env.NEXT_PUBLIC_METERED_API_KEY}`
+            );
+            this.rtcServers = await response.json();
+        }
+
+        // Create new connection
+        return new RTCPeerConnection({
+            iceServers: this.rtcServers as RTCIceServer[],
+        });
+    };
+
     createPeerConnection = async (peer: ConnectionPeer) => {
         this.debug(`Creating connection to peer: ${peer.id}`, peer);
 
-        const peerConnection = new RTCPeerConnection(this.rtcConfiguration);
+        const peerConnection = await this.getRtcConnection();
 
         // Create data channel (host creates the channel)
         const dataChannel = peerConnection.createDataChannel('game', {
@@ -255,7 +263,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.debug(`Received offer from host ${data.from}`);
         this.hostId = data.from;
 
-        const peerConnection = new RTCPeerConnection(this.rtcConfiguration);
+        const peerConnection = await this.getRtcConnection();
 
         // Add connection state logging
         peerConnection.onconnectionstatechange = () => {
