@@ -72,6 +72,8 @@ class Game extends Component<GameProviderProps, GameState> {
 
         // Start game loop
         if (this.props.connection.host) {
+            this.app.ticker.minFPS = 20;
+            this.app.ticker.maxFPS = 30;
             this.app.ticker.add(this.tick);
         }
     };
