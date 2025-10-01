@@ -1,6 +1,5 @@
 'use client';
 import { useConnection } from '@/contexts/Connection/Connection';
-import Link from 'next/link';
 import QRCode from 'react-qr-code';
 
 export function Sidebar() {
@@ -27,9 +26,9 @@ export function Sidebar() {
                 </ul>
             </div>
             <div>
-                <Link className="underline" href="/player">
+                <a className="underline" href="/player" rel="noreferrer" target="_blank">
                     Join now
-                </Link>
+                </a>
                 <div className="bg-white w-16">
                     <QRCode size={128} value={`${window.location.origin}/player`} viewBox="0 0 128 128" />
                 </div>
