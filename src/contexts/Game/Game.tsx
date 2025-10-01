@@ -1,12 +1,12 @@
 'use client';
 import { debugClient } from '@/debug';
 import { Ship } from '@/game';
+import { Player } from '@/types';
 import { compose } from '@/utils';
 import * as PIXI from 'pixi.js';
 import { Component, createContext, useContext } from 'react';
 import { withConnection } from '../Connection/Connection';
-import { GameConfig, GameProviderProps, GameState, GameTickPayload } from './Game.types';
-import { Player } from '@/types';
+import { GameProviderProps, GameState, GameTickPayload } from './Game.types';
 
 export const GameContext = createContext<GameState>({} as GameState);
 
@@ -41,14 +41,7 @@ class Game extends Component<GameProviderProps, GameState> {
         // Initialize state
         this.state = {
             canvas: null,
-            config: {
-                color: `#${Math.floor(Math.random() * 0xffffff)
-                    .toString(16)
-                    .padStart(6, '0')}`,
-                name: 'Player',
-            },
             mountCanvas: this.mountCanvas,
-            updateConfig: this.updateConfig,
         };
     }
 
@@ -73,13 +66,8 @@ class Game extends Component<GameProviderProps, GameState> {
         window.addEventListener('resize', this.handleResize);
 
         // Update state
-        const storedConfig = localStorage.getItem('game.config');
         this.setState({
             canvas: this.app.canvas,
-            config: {
-                ...this.state.config,
-                ...(storedConfig ? JSON.parse(storedConfig) : {}),
-            },
         });
 
         // Start game loop
@@ -134,22 +122,6 @@ class Game extends Component<GameProviderProps, GameState> {
         // Resize container
         this.container.scale.set(scale);
         this.container.position.set(centerX - size / 2, centerY - size / 2);
-    };
-
-    updateConfig = async (newConfig: Partial<GameConfig>) => {
-        // Update state
-        const newState = await this.updateState({
-            config: {
-                ...this.state.config,
-                ...newConfig,
-            },
-        });
-
-        // Store in local storage
-        localStorage.setItem('game.config', JSON.stringify(newState.config));
-
-        // Notify host
-        this.props.connection.notifyHost('updatePlayer', newState.config);
     };
 
     handleAddPlayers = (players: Player[]) => {

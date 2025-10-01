@@ -8,16 +8,9 @@ export interface GameProviderProps {
 
 export interface GameState {
     canvas: HTMLCanvasElement | null;
-    config: GameConfig;
     mountCanvas: (container: HTMLDivElement) => void;
-    updateConfig: (config: Partial<GameConfig>) => void;
 }
 
 export interface GameTickPayload {
     ships: Record<string, ShipData>;
-}
-
-export interface GameConfig {
-    color: string;
-    name: string;
 }

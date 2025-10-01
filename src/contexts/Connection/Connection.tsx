@@ -1,7 +1,7 @@
 'use client';
 import { debugClient } from '@/debug';
 import { withPathname } from '@/hooks';
-import { Player } from '@/types';
+import { Player, PlayerData } from '@/types';
 import { compose } from '@/utils';
 import _ from 'lodash';
 import { Component, createContext, useContext } from 'react';
@@ -52,6 +52,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             off: this.off,
             on: this.on,
             trigger: this.trigger,
+            updatePlayer: this.updatePlayer,
         };
     }
 
@@ -281,6 +282,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
             dataChannel.onclose = () => {
                 this.debug(`Disconnected from host`);
+                window.location.reload();
             };
 
             dataChannel.onerror = error => {
@@ -446,6 +448,15 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             name: `Player ${_.random(1000, 9999)}`,
         };
 
+        // Apply locally stored data
+        try {
+            const stored = localStorage.getItem('connection.player');
+            if (stored) {
+                const data = JSON.parse(stored);
+                Object.assign(player, data);
+            }
+        } catch {}
+
         // Update state
         await this.updateState({
             player,
@@ -479,6 +490,24 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         // Notify viewers and trigger event
         this.notifyViewers('removePlayers', [playerId]);
         this.trigger('removePlayers', [playerId]);
+    };
+
+    updatePlayer = async (data: PlayerData) => {
+        // Update state
+        const newState = await this.updateState(prevState => ({
+            player: {
+                ...prevState.player,
+                ...data,
+            } as Player,
+        }));
+
+        // Store config data in local storage
+        if (data.color || data.name) {
+            localStorage.setItem('connection.player', JSON.stringify(newState.player));
+        }
+
+        // Notify host
+        this.notifyHost('updatePlayer', data);
     };
 
     // Viewers

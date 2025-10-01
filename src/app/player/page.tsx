@@ -7,8 +7,8 @@ export default function Player() {
     const [showConfig, setShowConfig] = useState(false);
     const connection = useConnection();
 
-    // Show loader if not connected
-    if (!connection.connected) {
+    // Show loader if player is not initialized
+    if (!connection.player) {
         return <Loader />;
     }
 
