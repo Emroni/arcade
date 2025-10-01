@@ -16,15 +16,13 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
     const [buttons, setButtons] = useState<PlayerControllerButtons>({ a: false, b: false });
     const [joystick, setJoystick] = useState<PlayerControllerJoystick>({ ...joystickReset, angle: 0 });
     const connection = useConnection();
+    const containerObserver = useResizeObserver();
     const joystickRef = useRef<SVGGElement>(null);
-    const joystickObserver = useResizeObserver({
-        ref: joystickRef as any,
-    });
 
     const joystickRect = useMemo(() => {
         // Get joystick rect
-        return (joystickObserver.width && joystickRef.current?.getBoundingClientRect()) || new DOMRect();
-    }, [joystickObserver]);
+        return (containerObserver.width && joystickRef.current?.getBoundingClientRect()) || new DOMRect();
+    }, [containerObserver.width]);
 
     function handleButton(button: 'a' | 'b', pressed: boolean) {
         // Update buttons state
@@ -82,7 +80,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
     }
 
     return (
-        <div className="h-screen p-8 relative select-none touch-none">
+        <div className="h-screen p-8 relative select-none touch-none" ref={containerObserver.ref}>
             <button className="absolute h-8 left-2 top-2 w-8" onClick={onShowConfig}>
                 <Cog8ToothIcon />
             </button>
