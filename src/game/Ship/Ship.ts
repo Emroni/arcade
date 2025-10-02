@@ -5,7 +5,6 @@ import { ShipData } from './Ship.types';
 export class Ship extends PIXI.Container {
     app: PIXI.Application;
     nameText: PIXI.Text;
-    playerId: string;
     shape: PIXI.Graphics;
 
     joystickAmount = 0;
@@ -24,7 +23,6 @@ export class Ship extends PIXI.Container {
 
         // Initialize properties
         this.app = app;
-        this.playerId = player.id;
 
         this.x = 500;
         this.y = 500;
@@ -56,7 +54,7 @@ export class Ship extends PIXI.Container {
 
     get = () => {
         return {
-            playerId: this.playerId,
+            id: this.label,
             position: [this.x, this.y],
             rotation: this.shape.rotation,
         } as ShipData;
