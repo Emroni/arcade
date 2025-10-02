@@ -1,13 +1,9 @@
 import dotenvFlow from 'dotenv-flow';
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { debugServer } from './debug';
 
 // Configuration
 dotenvFlow.config();
-
-// Properties
-let host: Socket | null;
-const viewers: Socket[] = [];
 
 // Create server
 const io = new Server(process.env.SERVER_PORT, {
@@ -27,81 +23,41 @@ io.on('connection', socket => {
         return;
     }
 
-    // Add as viewer
+    // Join role room
     debugServer(role, `[${socket.id}] Connected`);
+    socket.join(role);
+
+    // Handle viewer
     if (role === 'viewer') {
-        viewers.push(socket);
+        pickHost();
     }
 
     // Handle disconnect
     socket.on('disconnect', () => {
         debugServer(role, `[${socket.id}] Disconnected`);
 
-        // Remove from viewers
-        const viewerIndex = viewers.indexOf(socket);
-        if (viewerIndex !== -1) {
-            viewers.splice(viewerIndex, 1);
+        // Handle viewer
+        if (role === 'viewer') {
+            pickHost();
         }
-
-        // Notify host
-        if (host && host.id !== socket.id) {
-            host.emit('host.peer.remove', {
-                id: socket.id,
-                role,
-            });
-        }
-
-        // Check if host
-        if (host?.id === socket.id) {
-            debugServer(role, `[${socket.id}] Lost as host`);
-            host = null;
-
-            // Pick new host
-            if (viewers.length > 0) {
-                host = viewers[0];
-                host.emit('host.set');
-                debugServer(role, `[${host.id}] Set as new host`);
-            }
-        }
-    });
-
-    // Set up as host
-    if (!host && role === 'viewer') {
-        host = socket;
-        debugServer(role, `[${socket.id}] Set as host`);
-        socket.emit('host.set');
-    }
-
-    // Notify host
-    if (host && host.id !== socket.id) {
-        host.emit('host.peer.add', {
-            id: socket.id,
-            role,
-        });
-    }
-
-    // WebRTC signaling relay
-    socket.on('webrtc.offer', data => {
-        debugServer('webrtc', `Relaying offer from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('webrtc.offer', {
-            offer: data.offer,
-            from: socket.id,
-        });
-    });
-
-    socket.on('webrtc.answer', data => {
-        debugServer('webrtc', `Relaying answer from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('webrtc.answer', {
-            answer: data.answer,
-            from: socket.id,
-        });
-    });
-
-    socket.on('ice.candidate', data => {
-        debugServer('webrtc', `Relaying ICE candidate from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('ice.candidate', {
-            candidate: data.candidate,
-            from: socket.id,
-        });
     });
 });
+
+function pickHost() {
+    // Check current host
+    const hostRoom = io.sockets.adapter.rooms.get('host');
+    if (hostRoom?.size) {
+        return;
+    }
+
+    // Pick new host from viewers
+    const viewerRoom = io.sockets.adapter.rooms.get('viewer');
+    const viewerIds = viewerRoom ? Array.from(viewerRoom) : [];
+    const newHostId = viewerIds?.[0];
+    const newHostSocket = io.sockets.sockets.get(newHostId);
+    if (newHostSocket) {
+        newHostSocket.join('host');
+        newHostSocket.emit('host.set');
+        debugServer('viewer', `[${newHostId}] Set as new host`);
+    }
+}
