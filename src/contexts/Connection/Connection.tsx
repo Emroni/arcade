@@ -1,7 +1,10 @@
 'use client';
 import { debugClient } from '@/debug';
 import { withPathname } from '@/hooks';
+import { Player } from '@/types';
+import { ViewerSyncPayload } from '@/types/viewer';
 import { compose } from '@/utils';
+import _ from 'lodash';
 import { Component, createContext, useContext } from 'react';
 import { Socket, io } from 'socket.io-client';
 import { ConnectionListener, ConnectionProviderProps, ConnectionState } from './Connection.types';
@@ -36,7 +39,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             player: null,
             players: [],
             role: this.props.pathname.startsWith('/player') ? 'player' : 'viewer',
-            viewerIds: [],
+            viewers: 0,
             notifyHost: this.notifyHost,
             notifyPlayers: this.notifyPlayers,
             notifyViewers: this.notifyViewers,
@@ -53,17 +56,16 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             return;
         }
 
-        // Create client
+        // Connect to socket
         this.socket = io(process.env.NEXT_PUBLIC_SERVER_PATH, {
             query: {
                 role: this.state.role,
             },
         });
-
-        // Add socket listeners
         this.socket.on('connect', this.handleConnect);
         this.socket.on('disconnect', this.handleDisconnect);
         this.socket.on('host.set', this.handleHostSet);
+        this.socket.on('viewer.sync', this.handleViewerSync);
         // this.socket.on('player.add', this.handleHostPlayerAdd);
         // this.socket.on('player.remove', this.handleHostPlayerRemove);
     }
@@ -88,14 +90,21 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     // Connection handlers
-    handleConnect = () => {
+    handleConnect = async () => {
         this.debug('Connected');
-        this.setState({
+
+        // Update state
+        await this.updateState({
             connected: true,
             connecting: false,
             id: this.socket?.id || null,
             host: false,
         });
+
+        // Handle role
+        if (this.state.role === 'player') {
+            this.createPlayer();
+        }
     };
 
     handleDisconnect = () => {
@@ -112,6 +121,14 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.debug('Set as host');
         this.setState({
             host: true,
+        });
+    };
+
+    handleViewerSync = (payload: ViewerSyncPayload) => {
+        this.debug('Viewer sync', payload);
+        this.setState({
+            players: payload.players,
+            viewers: payload.viewers,
         });
     };
 
@@ -178,38 +195,45 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
     };
 
-    // // Players
-    // createPlayer = async () => {
-    //     this.debug('Creating player for this client', this.state.id);
+    // Players
+    createPlayer = async () => {
+        this.debug('Creating player');
 
-    //     // Create player
-    //     const player: Player = {
-    //         buttons: [false, false],
-    //         color: `#${Math.floor(Math.random() * 16777215)
-    //             .toString(16)
-    //             .padStart(6, '0')}`,
-    //         id: this.state.id || '',
-    //         joystick: [0, 0],
-    //         name: `Player ${_.random(1000, 9999)}`,
-    //     };
+        // Check id
+        const { id } = this.state;
+        if (!id || !this.socket) {
+            this.debug('Cannot create player: no id or socket');
+            return;
+        }
 
-    //     // Apply locally stored data
-    //     try {
-    //         const stored = localStorage.getItem('connection.player');
-    //         if (stored) {
-    //             const data = JSON.parse(stored);
-    //             Object.assign(player, data);
-    //         }
-    //     } catch {}
+        // Create player
+        const player: Player = {
+            buttons: [false, false],
+            color: `#${Math.floor(Math.random() * 16777215)
+                .toString(16)
+                .padStart(6, '0')}`,
+            id,
+            joystick: [0, 0],
+            name: `Player ${_.random(1000, 9999)}`,
+        };
 
-    //     // Update state
-    //     await this.updateState({
-    //         player,
-    //     });
+        // Apply locally stored data
+        try {
+            const stored = localStorage.getItem('connection.player');
+            if (stored) {
+                const data = JSON.parse(stored);
+                Object.assign(player, data);
+            }
+        } catch {}
 
-    //     // Notify host
-    //     this.notifyHost('host.player.add', player);
-    // };
+        // Update state
+        await this.updateState({
+            player,
+        });
+
+        // Emit to server
+        this.socket?.emit('player.add', player);
+    };
 
     // handleHostPlayerAdd = async (player: Player) => {
     //     this.debug('Add player', player);

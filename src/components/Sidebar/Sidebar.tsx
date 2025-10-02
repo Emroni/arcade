@@ -10,12 +10,7 @@ export function Sidebar() {
             <div className="flex-1">
                 <div>ID: {connection.id}</div>
                 <div>Host: {connection.host ? 'true' : 'false'}</div>
-                <div>Viewers: {connection.viewerIds.length}</div>
-                <ul className="list-disc list-inside">
-                    {connection.viewerIds.map(viewerId => (
-                        <li key={viewerId}>{viewerId}</li>
-                    ))}
-                </ul>
+                <div>Viewers: {connection.viewers}</div>
                 <div>Players: {connection.players.length}</div>
                 <ul className="list-disc list-inside">
                     {connection.players.map(player => (

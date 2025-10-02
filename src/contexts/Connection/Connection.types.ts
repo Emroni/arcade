@@ -1,4 +1,4 @@
-import { Player, PlayerData } from '@/types';
+import { Player } from '@/types';
 
 export type ConnectionListener = (payload: any, peerId?: string) => void;
 export type ConnectionPeerRole = 'player' | 'viewer';
@@ -16,7 +16,7 @@ export interface ConnectionState {
     player: Player | null;
     players: Player[];
     role: string;
-    viewerIds: string[];
+    viewers: number;
     notifyHost: (event: string, payload: any) => void;
     notifyPlayers: (event: string, payload: any) => void;
     notifyViewers: (event: string, payload: any) => void;

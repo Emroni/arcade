@@ -1,9 +1,14 @@
 import dotenvFlow from 'dotenv-flow';
 import { Server } from 'socket.io';
 import { debugServer } from './debug';
+import { Player } from './types';
+import { ViewerSyncPayload } from './types/viewer';
 
 // Configuration
 dotenvFlow.config();
+
+// Properties
+const players: Map<string, Player> = new Map();
 
 // Create server
 const io = new Server(process.env.SERVER_PORT, {
@@ -26,9 +31,15 @@ io.on('connection', socket => {
     // Join role room
     debugServer(role, `[${socket.id}] Connected`);
     socket.join(role);
+    syncViewers();
 
-    // Handle viewer
-    if (role === 'viewer') {
+    // Handle role
+    if (role === 'player') {
+        socket.on('player.add', player => {
+            players.set(socket.id, player);
+            syncViewers();
+        });
+    } else if (role === 'viewer') {
         pickHost();
     }
 
@@ -36,10 +47,15 @@ io.on('connection', socket => {
     socket.on('disconnect', () => {
         debugServer(role, `[${socket.id}] Disconnected`);
 
-        // Handle viewer
-        if (role === 'viewer') {
+        // Handle role
+        if (role === 'player') {
+            players.delete(socket.id);
+        } else if (role === 'viewer') {
             pickHost();
         }
+
+        // Sync viewers
+        syncViewers();
     });
 });
 
@@ -60,4 +76,12 @@ function pickHost() {
         newHostSocket.emit('host.set');
         debugServer('viewer', `[${newHostId}] Set as new host`);
     }
+}
+
+function syncViewers() {
+    const payload: ViewerSyncPayload = {
+        players: Array.from(players.values()),
+        viewers: io.sockets.adapter.rooms.get('viewer')?.size || 0,
+    };
+    io.to('viewer').emit('viewer.sync', payload);
 }
