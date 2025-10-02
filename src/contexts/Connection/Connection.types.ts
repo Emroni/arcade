@@ -17,9 +17,7 @@ export interface ConnectionState {
     players: Player[];
     role: string;
     viewers: number;
-    notifyHost: (event: string, payload: any) => void;
-    notifyPlayers: (event: string, payload: any) => void;
-    notifyViewers: (event: string, payload: any) => void;
+    emit: (event: string, payload: any) => void;
     off: (event: string, listener: ConnectionListener) => void;
     on: (event: string, listener: ConnectionListener) => void;
     trigger: (event: string, payload?: any, peerId?: string) => void;

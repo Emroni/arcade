@@ -40,9 +40,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             players: [],
             role: this.props.pathname.startsWith('/player') ? 'player' : 'viewer',
             viewers: 0,
-            notifyHost: this.notifyHost,
-            notifyPlayers: this.notifyPlayers,
-            notifyViewers: this.notifyViewers,
+            emit: this.emit,
             off: this.off,
             on: this.on,
             trigger: this.trigger,
@@ -65,9 +63,8 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.socket.on('connect', this.handleConnect);
         this.socket.on('disconnect', this.handleDisconnect);
         this.socket.on('host.set', this.handleHostSet);
+        this.socket.on('player.control', this.handlePlayerUpdate);
         this.socket.on('viewer.sync', this.handleViewerSync);
-        // this.socket.on('player.add', this.handleHostPlayerAdd);
-        // this.socket.on('player.remove', this.handleHostPlayerRemove);
     }
 
     componentWillUnmount() {
@@ -124,6 +121,20 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
     };
 
+    handlePlayerUpdate = (data: PlayerData) => {
+        this.setState(prevState => ({
+            players: prevState.players.map(player => {
+                if (player.id === data.id) {
+                    return {
+                        ...player,
+                        ...data,
+                    };
+                }
+                return player;
+            }),
+        }));
+    };
+
     handleViewerSync = (payload: ViewerSyncPayload) => {
         this.setState({
             players: payload.players,
@@ -131,34 +142,8 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
     };
 
-    // WebRTC methods
-    notifyHost = (event: string, payload: any) => {
-        // if (this.hostId) {
-        //     this.sendToPeer(this.hostId, {
-        //         event,
-        //         payload,
-        //     });
-        // } else {
-        //     this.debug('Cannot notify host: no host ID');
-        // }
-    };
-
-    notifyPlayers = (event: string, payload: any) => {
-        // this.state.players.forEach(player => {
-        //     this.sendToPeer(player.id, {
-        //         event,
-        //         payload,
-        //     });
-        // });
-    };
-
-    notifyViewers = (event: string, payload: any) => {
-        // this.state.viewerIds.forEach(viewerId => {
-        //     this.sendToPeer(viewerId, {
-        //         event,
-        //         payload,
-        //     });
-        // });
+    emit = (event: string, payload: any) => {
+        this.socket?.emit(event, payload);
     };
 
     // Listeners
@@ -230,8 +215,8 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             player,
         });
 
-        // Emit to server
-        this.socket?.emit('player.add', player);
+        // Emit event
+        this.emit('player.add', player);
     };
 
     updatePlayer = async (data: PlayerData) => {
@@ -254,51 +239,9 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             );
         }
 
-        // Emit to server
-        this.socket?.emit('player.update', data);
+        // Emit event
+        this.emit('player.config', data);
     };
-
-    // handleHostPlayerAdd = async (player: Player) => {
-    //     this.debug('Add player', player);
-
-    //     // Update state
-    //     await this.updateState(prevState => ({
-    //         players: [...prevState.players, player],
-    //     }));
-
-    //     // Notify viewers and trigger event
-    //     this.notifyViewers('viewers.players.add', [player]);
-    //     this.trigger('viewers.players.add', [player]);
-    // };
-
-    // handleHostPlayerRemove = async (playerId: string) => {
-    //     this.debug('Remove player', playerId);
-
-    //     // Update state
-    //     await this.updateState(prevState => ({
-    //         players: prevState.players.filter(p => p.id !== playerId),
-    //     }));
-
-    //     // Notify viewers and trigger event
-    //     this.notifyViewers('viewers.players.remove', [playerId]);
-    //     this.trigger('viewers.players.remove', [playerId]);
-    // };
-
-    // // Viewers
-    // addViewer = async (viewerId: string) => {
-    //     this.debug('Add viewer', viewerId);
-
-    //     // Update state
-    //     await this.updateState(prevState => ({
-    //         viewerIds: [...prevState.viewerIds, viewerId],
-    //     }));
-
-    //     // Notify viewer
-    //     this.sendToPeer(viewerId, {
-    //         event: 'viewers.players.add',
-    //         payload: this.state.players,
-    //     });
-    // };
 
     render() {
         return <ConnectionContext.Provider value={this.state}>{this.props.children}</ConnectionContext.Provider>;

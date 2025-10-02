@@ -31,6 +31,7 @@ io.on('connection', socket => {
     // Join role room
     debugServer(role, `[${socket.id}] Connected`);
     socket.join(role);
+    pickViewerHost();
     syncViewers();
 
     // Handle disconnect
@@ -41,7 +42,7 @@ io.on('connection', socket => {
         if (role === 'player') {
             players.delete(socket.id);
         } else if (role === 'viewer') {
-            pickHost();
+            pickViewerHost();
         }
 
         // Sync viewers
@@ -51,16 +52,43 @@ io.on('connection', socket => {
     // Players
     if (role === 'player') {
         socket.on('player.add', player => addPlayer(socket, player));
-        socket.on('player.update', data => updatePlayer(socket, data));
-    }
-
-    // Viewers
-    if (role === 'viewer') {
-        pickHost();
+        socket.on('player.config', data => configPlayer(socket, data));
+        socket.on('player.control', data => controlPlayer(socket, data));
     }
 });
 
-function pickHost() {
+// Players
+function addPlayer(socket: Socket, player: Player) {
+    players.set(socket.id, player);
+    syncViewers();
+}
+
+function configPlayer(socket: Socket, data: PlayerData) {
+    updatePlayer(socket, data);
+    syncViewers();
+}
+
+function controlPlayer(socket: Socket, data: PlayerData) {
+    updatePlayer(socket, data);
+    io.to('host').emit('player.control', data);
+}
+
+function updatePlayer(socket: Socket, data: PlayerData) {
+    // Get player
+    const player = players.get(socket.id);
+    if (!player) {
+        return;
+    }
+
+    // Update player
+    players.set(socket.id, {
+        ...player,
+        ...data,
+    });
+}
+
+// Viewers
+function pickViewerHost() {
     // Check current host
     const hostRoom = io.sockets.adapter.rooms.get('host');
     if (hostRoom?.size) {
@@ -77,26 +105,6 @@ function pickHost() {
         newHostSocket.emit('host.set');
         debugServer('viewer', `[${newHostId}] Set as new host`);
     }
-}
-
-function addPlayer(socket: Socket, player: Player) {
-    players.set(socket.id, player);
-    syncViewers();
-}
-
-function updatePlayer(socket: Socket, data: PlayerData) {
-    // Get player
-    const player = players.get(socket.id);
-    if (!player) {
-        return;
-    }
-
-    // Update player
-    players.set(socket.id, {
-        ...player,
-        ...data,
-    });
-    syncViewers();
 }
 
 function syncViewers() {
