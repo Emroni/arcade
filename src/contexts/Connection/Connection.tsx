@@ -1,7 +1,7 @@
 'use client';
 import { debugClient } from '@/debug';
 import { withPathname } from '@/hooks';
-import { Player } from '@/types';
+import { Player, PlayerData } from '@/types';
 import { ViewerSyncPayload } from '@/types/viewer';
 import { compose } from '@/utils';
 import _ from 'lodash';
@@ -46,7 +46,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             off: this.off,
             on: this.on,
             trigger: this.trigger,
-            // updatePlayer: this.updatePlayer,
+            updatePlayer: this.updatePlayer,
         };
     }
 
@@ -125,7 +125,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     handleViewerSync = (payload: ViewerSyncPayload) => {
-        this.debug('Viewer sync', payload);
         this.setState({
             players: payload.players,
             viewers: payload.viewers,
@@ -235,6 +234,30 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.socket?.emit('player.add', player);
     };
 
+    updatePlayer = async (data: PlayerData) => {
+        // Update state
+        const newState = await this.updateState(prevState => ({
+            player: {
+                ...prevState.player,
+                ...data,
+            } as Player,
+        }));
+
+        // Store config data in local storage
+        if (data.color || data.name) {
+            localStorage.setItem(
+                'connection.player',
+                JSON.stringify({
+                    color: newState.player?.color,
+                    name: newState.player?.name,
+                })
+            );
+        }
+
+        // Emit to server
+        this.socket?.emit('player.update', data);
+    };
+
     // handleHostPlayerAdd = async (player: Player) => {
     //     this.debug('Add player', player);
 
@@ -259,30 +282,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     //     // Notify viewers and trigger event
     //     this.notifyViewers('viewers.players.remove', [playerId]);
     //     this.trigger('viewers.players.remove', [playerId]);
-    // };
-
-    // updatePlayer = async (data: PlayerData) => {
-    //     // Update state
-    //     const newState = await this.updateState(prevState => ({
-    //         player: {
-    //             ...prevState.player,
-    //             ...data,
-    //         } as Player,
-    //     }));
-
-    //     // Store config data in local storage
-    //     if (data.color || data.name) {
-    //         localStorage.setItem(
-    //             'connection.player',
-    //             JSON.stringify({
-    //                 color: newState.player?.color,
-    //                 name: newState.player?.name,
-    //             })
-    //         );
-    //     }
-
-    //     // Notify host
-    //     this.notifyHost('host.player.update', data);
     // };
 
     // // Viewers

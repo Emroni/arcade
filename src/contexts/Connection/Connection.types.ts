@@ -1,4 +1,4 @@
-import { Player } from '@/types';
+import { Player, PlayerData } from '@/types';
 
 export type ConnectionListener = (payload: any, peerId?: string) => void;
 export type ConnectionPeerRole = 'player' | 'viewer';
@@ -23,7 +23,7 @@ export interface ConnectionState {
     off: (event: string, listener: ConnectionListener) => void;
     on: (event: string, listener: ConnectionListener) => void;
     trigger: (event: string, payload?: any, peerId?: string) => void;
-    // updatePlayer: (data: PlayerData) => void;
+    updatePlayer: (data: PlayerData) => void;
 }
 
 export interface ConnectionPeer {

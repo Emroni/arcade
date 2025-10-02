@@ -1,7 +1,7 @@
 import dotenvFlow from 'dotenv-flow';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { debugServer } from './debug';
-import { Player } from './types';
+import { Player, PlayerData } from './types';
 import { ViewerSyncPayload } from './types/viewer';
 
 // Configuration
@@ -33,16 +33,6 @@ io.on('connection', socket => {
     socket.join(role);
     syncViewers();
 
-    // Handle role
-    if (role === 'player') {
-        socket.on('player.add', player => {
-            players.set(socket.id, player);
-            syncViewers();
-        });
-    } else if (role === 'viewer') {
-        pickHost();
-    }
-
     // Handle disconnect
     socket.on('disconnect', () => {
         debugServer(role, `[${socket.id}] Disconnected`);
@@ -57,6 +47,17 @@ io.on('connection', socket => {
         // Sync viewers
         syncViewers();
     });
+
+    // Players
+    if (role === 'player') {
+        socket.on('player.add', player => addPlayer(socket, player));
+        socket.on('player.update', data => updatePlayer(socket, data));
+    }
+
+    // Viewers
+    if (role === 'viewer') {
+        pickHost();
+    }
 });
 
 function pickHost() {
@@ -76,6 +77,26 @@ function pickHost() {
         newHostSocket.emit('host.set');
         debugServer('viewer', `[${newHostId}] Set as new host`);
     }
+}
+
+function addPlayer(socket: Socket, player: Player) {
+    players.set(socket.id, player);
+    syncViewers();
+}
+
+function updatePlayer(socket: Socket, data: PlayerData) {
+    // Get player
+    const player = players.get(socket.id);
+    if (!player) {
+        return;
+    }
+
+    // Update player
+    players.set(socket.id, {
+        ...player,
+        ...data,
+    });
+    syncViewers();
 }
 
 function syncViewers() {
