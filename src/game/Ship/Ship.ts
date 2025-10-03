@@ -1,4 +1,4 @@
-import { Player, PlayerData } from '@/types';
+import { Player, PlayerControlPayload, PlayerData } from '@/types';
 import * as PIXI from 'pixi.js';
 import { ShipData } from './Ship.types';
 
@@ -11,8 +11,7 @@ export class Ship extends PIXI.Container {
     velocityEase = 0.1;
     velocityMultiplier = 20;
 
-    joystickAmount = 0;
-    joystickAngle = 0;
+    force = 0;
     velocityX = 0;
     velocityY = 0;
 
@@ -69,37 +68,37 @@ export class Ship extends PIXI.Container {
         this.velocityY = data.velocity[1];
     };
 
+    control = (payload: PlayerControlPayload) => {
+        // Parse angle
+        if (payload.angle !== undefined) {
+            this.shape.rotation = payload.angle;
+        }
+
+        // Parse force
+        if (payload.force !== undefined) {
+            this.force = payload.force;
+        }
+    };
+
     update = (data: PlayerData) => {
         // Parse color
-        if (data.color) {
+        if (data.color !== undefined) {
             this.shape.tint = data.color;
         }
 
         // Parse name
-        if (data.name) {
+        if (data.name !== undefined) {
             this.nameText.text = data.name;
             this.nameText.x = -this.nameText.width / 2;
-        }
-
-        // Parse joystick
-        if (data.joystick) {
-            const [amount, angle] = data.joystick;
-
-            // Update values
-            this.joystickAngle = angle;
-            this.joystickAmount = amount;
-
-            // Update rotation
-            this.shape.rotation = angle;
         }
     };
 
     tick = () => {
         // Update velocity
-        if (this.joystickAmount) {
-            const acceleration = this.joystickAmount * this.velocityMultiplier;
-            const targetVelocityX = Math.cos(this.joystickAngle) * acceleration;
-            const targetVelocityY = Math.sin(this.joystickAngle) * acceleration;
+        if (this.force) {
+            const force = this.force * this.velocityMultiplier;
+            const targetVelocityX = Math.cos(this.shape.rotation) * force;
+            const targetVelocityY = Math.sin(this.shape.rotation) * force;
             this.velocityX += (targetVelocityX - this.velocityX) * this.velocityEase;
             this.velocityY += (targetVelocityY - this.velocityY) * this.velocityEase;
         }

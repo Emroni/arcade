@@ -5,19 +5,18 @@ import { Cog8ToothIcon } from '@heroicons/react/24/solid';
 import _ from 'lodash';
 import { TouchEvent, useMemo, useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
-import { PlayerControllerJoystick, PlayerControllerProps } from './PlayerController.types';
+import { PlayerControllerProps } from './PlayerController.types';
 
-const joystickReset = {
-    amount: 0,
-    x: 100,
-    y: 100,
-};
+const joystickReset: Point = { x: 100, y: 100 };
 
 export function PlayerController({ onShowConfig }: PlayerControllerProps) {
-    const [joystick, setJoystick] = useState<PlayerControllerJoystick>({ ...joystickReset, angle: 0 });
+    const [joystick, setJoystick] = useState<Point>(joystickReset);
     const connection = useConnection();
     const containerObserver = useResizeObserver();
     const joystickRef = useRef<SVGGElement>(null);
+
+    // Destructure player
+    const { color } = connection.player!;
 
     // Throttle button handler
     const handleButton = useMemo(() => {
@@ -46,37 +45,27 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         const angle = Math.atan2(dY, dX);
         const radius = Math.min((Math.sqrt(dX * dX + dY * dY) / (joystickRect.width / 2)) * 100, 60);
 
-        // Get new joystick
-        const newJoystick = {
-            angle: _.round(angle, 3),
-            amount: _.round(Math.max(0, (radius / 60 - 0.3) / 0.7), 3),
-            x: radius * Math.sin(-angle + Math.PI / 2) + 100,
-            y: radius * Math.cos(angle - Math.PI / 2) + 100,
-        };
-        setJoystick(newJoystick);
-
         // Emit event
         connection.emit('player.server.control', {
-            joystick: [newJoystick.amount, newJoystick.angle],
+            angle: _.round(angle, 3),
+            force: _.round(Math.max(0, (radius / 60 - 0.3) / 0.7), 3),
+        });
+
+        // Update joystick
+        setJoystick({
+            x: radius * Math.sin(-angle + Math.PI / 2) + 100,
+            y: radius * Math.cos(angle - Math.PI / 2) + 100,
         });
     }
 
     function handleTouchEnd() {
-        // Reset joystick while keeping angle
-        const newJoystick = {
-            ...joystickReset,
-            angle: joystick.angle,
-        };
-        setJoystick(newJoystick);
+        // Reset joystick
+        setJoystick(joystickReset);
 
         // Emit event
         connection.emit('player.server.control', {
-            joystick: [newJoystick.amount, newJoystick.angle],
+            force: 0,
         });
-    }
-
-    if (!connection.player) {
-        return null;
     }
 
     return (
@@ -95,22 +84,14 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
                     onTouchMove={handleTouchMove}
                     onTouchStart={handleTouchMove}
                 >
-                    <circle
-                        cx={100}
-                        cy={100}
-                        fill={connection.player.color}
-                        fillOpacity={0.2}
-                        r={99}
-                        stroke={connection.player.color}
-                        strokeWidth={1}
-                    />
+                    <circle cx={100} cy={100} fill={color} fillOpacity={0.2} r={99} stroke={color} strokeWidth={1} />
                     <circle cx={100} cy={100} fill="#000000" fillOpacity={0.2} r={60} />
-                    <circle cx={joystick.x} cy={joystick.y} fill={connection.player.color} r={40} />
+                    <circle cx={joystick.x} cy={joystick.y} fill={color} r={40} />
                 </g>
 
                 {/* A button */}
                 <g onClick={() => handleButton('a')}>
-                    <circle cx={370} cy={70} fill={connection.player.color} r={30} />
+                    <circle cx={370} cy={70} fill={color} r={30} />
                     <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={370} y={70}>
                         A
                     </text>
@@ -118,7 +99,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
 
                 {/* B button */}
                 <g onClick={() => handleButton('b')}>
-                    <circle cx={300} cy={130} fill={connection.player.color} r={30} />
+                    <circle cx={300} cy={130} fill={color} r={30} />
                     <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={300} y={130}>
                         B
                     </text>

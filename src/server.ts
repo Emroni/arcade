@@ -2,7 +2,7 @@ import dotenvFlow from 'dotenv-flow';
 import { Server, Socket } from 'socket.io';
 import { debugServer } from './debug';
 import { GameTick } from './game/types';
-import { Player, PlayerButton, PlayerButtonPayload, PlayerData } from './types';
+import { Player, PlayerButton, PlayerButtonPayload, PlayerControlPayload, PlayerData } from './types';
 import { ViewerSyncPayload } from './types/viewer';
 
 // Configuration
@@ -53,10 +53,10 @@ io.on('connection', socket => {
 
     // Players
     if (role === 'player') {
-        socket.on('player.server.add', player => addPlayer(socket, player));
+        socket.on('player.server.add', player => handlePlayerAdd(socket, player));
         socket.on('player.server.button', button => handlePlayerButton(socket, button));
-        socket.on('player.server.config', data => configPlayer(socket, data));
-        socket.on('player.server.control', data => controlPlayer(socket, data));
+        socket.on('player.server.config', data => handlePlayerConfig(socket, data));
+        socket.on('player.server.control', data => handlePlayerControl(socket, data));
     }
 
     // Viewers
@@ -91,7 +91,7 @@ function updateGameTick(data: GameTick) {
 }
 
 // Players
-function addPlayer(socket: Socket, player: Player) {
+function handlePlayerAdd(socket: Socket, player: Player) {
     players.set(socket.id, player);
     syncViewers();
 }
@@ -104,16 +104,15 @@ function handlePlayerButton(socket: Socket, button: PlayerButton) {
     io.to('host').emit('server.host.player.button', payload);
 }
 
-function configPlayer(socket: Socket, data: PlayerData) {
+function handlePlayerConfig(socket: Socket, data: PlayerData) {
     updatePlayer(socket, data);
     syncViewers();
 }
 
-function controlPlayer(socket: Socket, data: PlayerData) {
-    updatePlayer(socket, data);
+function handlePlayerControl(socket: Socket, data: PlayerControlPayload) {
     io.to('host').emit('server.host.player.control', {
-        id: socket.id,
         ...data,
+        id: socket.id,
     });
 }
 

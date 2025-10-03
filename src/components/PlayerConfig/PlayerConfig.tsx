@@ -7,9 +7,8 @@ import { PlayerConfigProps } from './PlayerConfig.types';
 export function PlayerConfig({ onClose }: PlayerConfigProps) {
     const connection = useConnection();
 
-    if (!connection.player) {
-        return null;
-    }
+    // Destructure player
+    const { color, name } = connection.player!;
 
     return (
         <div className="p-2">
@@ -29,7 +28,7 @@ export function PlayerConfig({ onClose }: PlayerConfigProps) {
                         className="w-full p-2 border border-gray-300 rounded"
                         id="name"
                         type="text"
-                        value={connection.player.name}
+                        value={name}
                         onChange={e => connection.updatePlayer({ name: e.currentTarget.value })}
                     />
                 </div>
@@ -37,11 +36,7 @@ export function PlayerConfig({ onClose }: PlayerConfigProps) {
                 {/* Color input */}
                 <div>
                     <label className="block mb-2 font-bold">Color</label>
-                    <HuePicker
-                        color={connection.player.color}
-                        width="100%"
-                        onChange={e => connection.updatePlayer({ color: e.hex })}
-                    />
+                    <HuePicker color={color} width="100%" onChange={e => connection.updatePlayer({ color: e.hex })} />
                 </div>
             </div>
         </div>

@@ -2,7 +2,7 @@
 import { debugClient } from '@/debug';
 import { Bullet, Ship } from '@/game';
 import { GameTick } from '@/game/types';
-import { PlayerButtonPayload } from '@/types';
+import { PlayerButtonPayload, PlayerControlPayload } from '@/types';
 import { compose } from '@/utils';
 import _ from 'lodash';
 import * as PIXI from 'pixi.js';
@@ -75,6 +75,7 @@ class Game extends Component<GameProviderProps, GameState> {
 
         // Add listeners
         connection.on('server.host.player.button', this.handleHostPlayerButton);
+        connection.on('server.host.player.control', this.handleHostPlayerControl);
         connection.on('server.viewer.game.tick', this.handleViewerGameTick);
         window.addEventListener('resize', this.handleResize);
 
@@ -86,6 +87,8 @@ class Game extends Component<GameProviderProps, GameState> {
         const { connection } = this.props;
 
         // Remove listeners
+        connection.off('server.host.player.button', this.handleHostPlayerButton);
+        connection.off('server.host.player.control', this.handleHostPlayerControl);
         connection.off('server.viewer.game.tick', this.handleViewerGameTick);
         window.removeEventListener('resize', this.handleResize);
     }
@@ -198,6 +201,11 @@ class Game extends Component<GameProviderProps, GameState> {
             this.bulletsContainer.addChild(bullet);
         }
         bullet.fire(ship);
+    };
+
+    handleHostPlayerControl = (payload: PlayerControlPayload) => {
+        const ship = this.shipsContainer.getChildByLabel(payload.id) as Ship | null;
+        ship?.control(payload);
     };
 
     handleViewerGameTick = (gameTick: GameTick) => {

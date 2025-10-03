@@ -64,7 +64,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.on('connect', this.handleConnect);
         this.on('disconnect', this.handleDisconnect);
         this.on('server.host.set', this.handleHostSet);
-        this.on('server.host.player.control', this.handleHostPlayerControl);
         this.on('server.viewer.sync', this.handleViewerSync);
     }
 
@@ -73,7 +72,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.off('connect', this.handleConnect);
         this.off('disconnect', this.handleDisconnect);
         this.off('server.host.set', this.handleHostSet);
-        this.off('server.host.player.control', this.handleHostPlayerControl);
         this.off('server.viewer.sync', this.handleViewerSync);
 
         // Disconnect client
@@ -133,20 +131,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.socket?.listeners('viewer.game.tick').forEach(l => l(gameTick));
     };
 
-    handleHostPlayerControl = (data: PlayerData) => {
-        this.setState(prevState => ({
-            players: prevState.players.map(player => {
-                if (player.id === data.id) {
-                    return {
-                        ...player,
-                        ...data,
-                    };
-                }
-                return player;
-            }),
-        }));
-    };
-
     handleViewerSync = (payload: ViewerSyncPayload) => {
         this.setState({
             players: payload.players,
@@ -184,7 +168,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
                 .toString(16)
                 .padStart(6, '0')}`,
             id,
-            joystick: [0, 0],
             name: `Player ${_.random(1000, 9999)}`,
         };
 
