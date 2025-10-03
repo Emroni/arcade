@@ -7,11 +7,12 @@ export class Ship extends PIXI.Container {
     nameText: PIXI.Text;
     shape: PIXI.Graphics;
 
-    joystickAmount = 0;
-    joystickAngle = 0;
     velocityDecay = 0.995;
     velocityEase = 0.1;
     velocityMultiplier = 20;
+
+    joystickAmount = 0;
+    joystickAngle = 0;
     velocityX = 0;
     velocityY = 0;
 
@@ -57,12 +58,15 @@ export class Ship extends PIXI.Container {
             id: this.label,
             position: [this.x, this.y],
             rotation: this.shape.rotation,
+            velocity: [this.velocityX, this.velocityY],
         } as ShipData;
     };
 
     set = (data: ShipData) => {
         this.position.set(data.position[0], data.position[1]);
         this.shape.rotation = data.rotation;
+        this.velocityX = data.velocity[0];
+        this.velocityY = data.velocity[1];
     };
 
     update = (data: PlayerData) => {

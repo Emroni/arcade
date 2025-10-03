@@ -11,8 +11,3 @@ export interface GameState {
     canvas: HTMLCanvasElement | null;
     mountCanvas: (container: HTMLDivElement) => void;
 }
-
-export interface GameTickPayload {
-    bullets: BulletData[];
-    ships: ShipData[];
-}

@@ -1,7 +1,9 @@
 'use client';
 import { debugClient } from '@/debug';
 import { Bullet, Ship } from '@/game';
+import { GameTick } from '@/game/types';
 import { compose } from '@/utils';
+import _ from 'lodash';
 import * as PIXI from 'pixi.js';
 import { Component, createContext, useContext } from 'react';
 import { withConnection } from '../Connection/Connection';
@@ -25,6 +27,7 @@ class Game extends Component<GameProviderProps, GameState> {
     shipsContainer: PIXI.Container<Ship>;
 
     active = false;
+    gameTick: GameTick | null = null;
 
     constructor(props: GameProviderProps) {
         super(props);
@@ -65,10 +68,7 @@ class Game extends Component<GameProviderProps, GameState> {
         this.background.anchor.set(0.5);
 
         // Add listeners
-        // connection.on('host.player.update', this.handleHostPlayerUpdate);
-        // connection.on('viewers.game.tick', this.handleViewersGameTick);
-        // connection.on('viewers.players.add', this.handleViewersPlayersAdd);
-        // connection.on('viewers.players.remove', this.handleViewersPlayersRemove);
+        connection.on('viewer.game.tick', this.handleViewerGameTick);
         window.addEventListener('resize', this.handleResize);
 
         // Update state
@@ -84,10 +84,7 @@ class Game extends Component<GameProviderProps, GameState> {
         const { connection } = this.props;
 
         // Remove listeners
-        // connection.off('host.player.update', this.handleHostPlayerUpdate);
-        // connection.off('viewers.game.tick', this.handleViewersGameTick);
-        // connection.off('viewers.players.add', this.handleViewersPlayersAdd);
-        // connection.off('viewers.players.remove', this.handleViewersPlayersRemove);
+        connection.on('viewer.game.tick', this.handleViewerGameTick);
         window.removeEventListener('resize', this.handleResize);
     }
 
@@ -205,7 +202,7 @@ class Game extends Component<GameProviderProps, GameState> {
     //     });
     // };
 
-    // handleViewersGameTick = (payload: GameTickPayload) => {
+    // handleViewersGameTick = (payload: GameTick) => {
     //     // Make sure there are enough bullets
     //     while (payload.bullets.length > this.bulletsContainer.children.length) {
     //         const bullet = new Bullet(this.app);
@@ -231,14 +228,28 @@ class Game extends Component<GameProviderProps, GameState> {
 
     hostTick = () => {
         // Tick elements
-        // const bullets = this.bulletsContainer.children.filter(bullet => bullet.playerId).map(bullet => bullet.tick());
-        // const ships = this.shipsContainer.children.map(ship => ship.tick());
-        // Notify viewers
-        // const payload: GameTickPayload = {
-        //     bullets,
-        //     ships,
-        // };
-        // this.props.connection.notifyViewers('viewers.game.tick', payload);
+        const bullets = this.bulletsContainer.children.filter(bullet => bullet.playerId).map(bullet => bullet.tick());
+        const ships = this.shipsContainer.children.map(ship => ship.tick());
+
+        // Emit event
+        const newGameTick: GameTick = {
+            bullets,
+            ships,
+        };
+        if (!_.isEqual(this.gameTick, newGameTick)) {
+            this.gameTick = newGameTick;
+            this.props.connection.emit('host.game.tick', newGameTick);
+        }
+    };
+
+    handleViewerGameTick = (gameTick: GameTick) => {
+        this.gameTick = gameTick;
+
+        // Set ships
+        gameTick.ships.forEach(shipData => {
+            const ship = this.shipsContainer.getChildByLabel(shipData.id) as Ship | null;
+            ship?.set(shipData);
+        });
     };
 
     render() {

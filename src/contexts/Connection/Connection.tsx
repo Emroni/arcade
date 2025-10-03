@@ -1,5 +1,6 @@
 'use client';
 import { debugClient } from '@/debug';
+import { GameTick } from '@/game/types';
 import { withPathname } from '@/hooks';
 import { Player, PlayerData } from '@/types';
 import { ViewerSyncPayload } from '@/types/viewer';
@@ -24,7 +25,6 @@ export function withConnection(WrappedComponent: any) {
 }
 
 class Connection extends Component<ConnectionProviderProps, ConnectionState> {
-    listeners: Record<string, ConnectionListener[]> = {};
     socket: Socket | null = null;
 
     constructor(props: ConnectionProviderProps) {
@@ -43,7 +43,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             emit: this.emit,
             off: this.off,
             on: this.on,
-            trigger: this.trigger,
             updatePlayer: this.updatePlayer,
         };
     }
@@ -114,11 +113,12 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
     };
 
-    handleHostSet = () => {
+    handleHostSet = async (gameTick: GameTick) => {
         this.debug('Set as host');
-        this.setState({
+        await this.updateState({
             host: true,
         });
+        this.socket?.listeners('viewer.game.tick').forEach(l => l(gameTick));
     };
 
     handlePlayerUpdate = (data: PlayerData) => {
@@ -135,6 +135,8 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }));
     };
 
+    handleViewerGameTick = (gameTick: GameTick) => {};
+
     handleViewerSync = (payload: ViewerSyncPayload) => {
         this.setState({
             players: payload.players,
@@ -142,41 +144,17 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
     };
 
+    // Socket methods
     emit = (event: string, payload: any) => {
         this.socket?.emit(event, payload);
     };
 
-    // Listeners
     on = (event: string, listener: ConnectionListener) => {
-        // Add event if it doesn't exist
-        if (!this.listeners[event]) {
-            this.listeners[event] = [];
-        }
-
-        // Add listener
-        this.listeners[event].push(listener);
+        this.socket?.on(event, listener);
     };
 
     off = (event: string, listener: ConnectionListener) => {
-        // Check if event exists
-        if (!this.listeners[event]) {
-            return;
-        }
-
-        // Remove listener
-        this.listeners[event] = this.listeners[event].filter(l => l !== listener);
-
-        // Remove event if no listeners left
-        if (this.listeners[event].length === 0) {
-            delete this.listeners[event];
-        }
-    };
-
-    trigger = (event: string, payload?: any, peerId?: string) => {
-        // Call event listeners
-        this.listeners[event]?.forEach(listener => {
-            listener(payload, peerId);
-        });
+        this.socket?.off(event, listener);
     };
 
     // Players

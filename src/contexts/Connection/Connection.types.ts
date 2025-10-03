@@ -1,6 +1,6 @@
 import { Player, PlayerData } from '@/types';
 
-export type ConnectionListener = (payload: any, peerId?: string) => void;
+export type ConnectionListener = (payload: any) => void;
 export type ConnectionPeerRole = 'player' | 'viewer';
 
 export interface ConnectionProviderProps {
@@ -20,7 +20,6 @@ export interface ConnectionState {
     emit: (event: string, payload: any) => void;
     off: (event: string, listener: ConnectionListener) => void;
     on: (event: string, listener: ConnectionListener) => void;
-    trigger: (event: string, payload?: any, peerId?: string) => void;
     updatePlayer: (data: PlayerData) => void;
 }
 
