@@ -33,7 +33,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         setButtons(newButtons);
 
         // Emit event
-        connection.emit('player.control', {
+        connection.emit('player.server.control', {
             buttons: [newButtons.a, newButtons.b],
         });
     }
@@ -56,7 +56,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         setJoystick(newJoystick);
 
         // Emit event
-        connection.emit('player.control', {
+        connection.emit('player.server.control', {
             joystick: [newJoystick.amount, newJoystick.angle],
         });
     }
@@ -70,7 +70,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         setJoystick(newJoystick);
 
         // Emit event
-        connection.emit('player.control', {
+        connection.emit('player.server.control', {
             joystick: [newJoystick.amount, newJoystick.angle],
         });
     }

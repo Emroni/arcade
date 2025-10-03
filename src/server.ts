@@ -18,7 +18,7 @@ const io = new Server(process.env.SERVER_PORT, {
         origin: '*',
     },
 });
-console.log(`Server ready on port ${process.env.SERVER_PORT}`);
+debugServer('socket', `Ready on port ${process.env.SERVER_PORT}`);
 
 // Handle connections
 io.on('connection', socket => {
@@ -53,14 +53,14 @@ io.on('connection', socket => {
 
     // Players
     if (role === 'player') {
-        socket.on('player.add', player => addPlayer(socket, player));
-        socket.on('player.config', data => configPlayer(socket, data));
-        socket.on('player.control', data => controlPlayer(socket, data));
+        socket.on('player.server.add', player => addPlayer(socket, player));
+        socket.on('player.server.config', data => configPlayer(socket, data));
+        socket.on('player.server.control', data => controlPlayer(socket, data));
     }
 
     // Viewers
     if (role === 'viewer') {
-        socket.on('host.game.tick', updateGameTick);
+        socket.on('host.server.game.tick', updateGameTick);
     }
 });
 
@@ -79,14 +79,14 @@ function pickHost() {
     const newHostSocket = io.sockets.sockets.get(newHostId);
     if (newHostSocket) {
         newHostSocket.join('host');
-        newHostSocket.emit('host.set', gameTick);
+        newHostSocket.emit('server.host.set', gameTick);
         debugServer('viewer', `[${newHostId}] Set as new host`);
     }
 }
 
 function updateGameTick(data: GameTick) {
     gameTick = data;
-    io.to('viewer').except('host').emit('viewer.game.tick', data);
+    io.to('viewer').except('host').emit('server.viewer.game.tick', data);
 }
 
 // Players
@@ -102,7 +102,7 @@ function configPlayer(socket: Socket, data: PlayerData) {
 
 function controlPlayer(socket: Socket, data: PlayerData) {
     updatePlayer(socket, data);
-    io.to('host').emit('player.control', {
+    io.to('host').emit('server.host.player.control', {
         id: socket.id,
         ...data,
     });
@@ -128,5 +128,5 @@ function syncViewers() {
         players: Array.from(players.values()),
         viewers: io.sockets.adapter.rooms.get('viewer')?.size || 0,
     };
-    io.to('viewer').emit('viewer.sync', payload);
+    io.to('viewer').emit('server.viewer.sync', payload);
 }

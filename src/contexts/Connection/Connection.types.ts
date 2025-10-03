@@ -1,7 +1,6 @@
 import { Player, PlayerData } from '@/types';
 
 export type ConnectionListener = (payload: any) => void;
-export type ConnectionPeerRole = 'player' | 'viewer';
 
 export interface ConnectionProviderProps {
     children: React.ReactNode;
@@ -21,9 +20,4 @@ export interface ConnectionState {
     off: (event: string, listener: ConnectionListener) => void;
     on: (event: string, listener: ConnectionListener) => void;
     updatePlayer: (data: PlayerData) => void;
-}
-
-export interface ConnectionPeer {
-    id: string;
-    role: ConnectionPeerRole;
 }

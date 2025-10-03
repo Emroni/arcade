@@ -68,16 +68,16 @@ class Game extends Component<GameProviderProps, GameState> {
         this.app.stage.addChildAt(this.background, 0);
         this.background.anchor.set(0.5);
 
-        // Add listeners
-        connection.on('viewer.game.tick', this.handleViewerGameTick);
-        window.addEventListener('resize', this.handleResize);
-
         // Update state
         this.setState({
             canvas: this.app.canvas,
         });
 
-        // Initialize elements
+        // Add listeners
+        connection.on('server.viewer.game.tick', this.handleViewerGameTick);
+        window.addEventListener('resize', this.handleResize);
+
+        // Initial elements
         this.updateElements();
     };
 
@@ -85,7 +85,7 @@ class Game extends Component<GameProviderProps, GameState> {
         const { connection } = this.props;
 
         // Remove listeners
-        connection.on('viewer.game.tick', this.handleViewerGameTick);
+        connection.off('server.viewer.game.tick', this.handleViewerGameTick);
         window.removeEventListener('resize', this.handleResize);
     }
 
@@ -209,7 +209,7 @@ class Game extends Component<GameProviderProps, GameState> {
         };
         if (!_.isEqual(this.gameTick, newGameTick)) {
             this.gameTick = newGameTick;
-            this.props.connection.emit('host.game.tick', newGameTick);
+            this.props.connection.emit('host.server.game.tick', newGameTick);
         }
     };
 

@@ -59,14 +59,23 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
                 role: this.state.role,
             },
         });
-        this.socket.on('connect', this.handleConnect);
-        this.socket.on('disconnect', this.handleDisconnect);
-        this.socket.on('host.set', this.handleHostSet);
-        this.socket.on('player.control', this.handlePlayerUpdate);
-        this.socket.on('viewer.sync', this.handleViewerSync);
+
+        // Add listeners
+        this.on('connect', this.handleConnect);
+        this.on('disconnect', this.handleDisconnect);
+        this.on('server.host.set', this.handleHostSet);
+        this.on('server.host.player.control', this.handleHostPlayerControl);
+        this.on('server.viewer.sync', this.handleViewerSync);
     }
 
     componentWillUnmount() {
+        // Remove listeners
+        this.off('connect', this.handleConnect);
+        this.off('disconnect', this.handleDisconnect);
+        this.off('server.host.set', this.handleHostSet);
+        this.off('server.host.player.control', this.handleHostPlayerControl);
+        this.off('server.viewer.sync', this.handleViewerSync);
+
         // Disconnect client
         this.socket?.disconnect();
     }
@@ -124,7 +133,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.socket?.listeners('viewer.game.tick').forEach(l => l(gameTick));
     };
 
-    handlePlayerUpdate = (data: PlayerData) => {
+    handleHostPlayerControl = (data: PlayerData) => {
         this.setState(prevState => ({
             players: prevState.players.map(player => {
                 if (player.id === data.id) {
@@ -195,7 +204,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         });
 
         // Emit event
-        this.emit('player.add', player);
+        this.emit('player.server.add', player);
     };
 
     updatePlayer = async (data: PlayerData) => {
@@ -219,7 +228,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }
 
         // Emit event
-        this.emit('player.config', data);
+        this.emit('player.server.config', data);
     };
 
     render() {
