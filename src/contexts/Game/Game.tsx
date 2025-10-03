@@ -2,6 +2,7 @@
 import { debugClient } from '@/debug';
 import { Bullet, Ship } from '@/game';
 import { GameTick } from '@/game/types';
+import { Player } from '@/types';
 import { compose } from '@/utils';
 import _ from 'lodash';
 import * as PIXI from 'pixi.js';
@@ -77,7 +78,7 @@ class Game extends Component<GameProviderProps, GameState> {
         });
 
         // Initialize elements
-        this.updateShips();
+        this.updateElements();
     };
 
     componentWillUnmount() {
@@ -88,7 +89,7 @@ class Game extends Component<GameProviderProps, GameState> {
         window.removeEventListener('resize', this.handleResize);
     }
 
-    componentDidUpdate(prevProps: Readonly<GameProviderProps>, prevState: Readonly<GameState>, snapshot?: any): void {
+    componentDidUpdate(prevProps: Readonly<GameProviderProps>) {
         const { connection } = this.props;
 
         // Start game loop if host
@@ -101,7 +102,7 @@ class Game extends Component<GameProviderProps, GameState> {
 
         // Update elements
         if (connection.players !== prevProps.connection.players) {
-            this.updateShips();
+            this.updateElements();
         }
     }
 
@@ -142,7 +143,7 @@ class Game extends Component<GameProviderProps, GameState> {
         this.container.position.set(centerX - size / 2, centerY - size / 2);
     };
 
-    updateShips = () => {
+    updateElements = () => {
         const { players } = this.props.connection;
 
         // Update existing ships
@@ -157,74 +158,44 @@ class Game extends Component<GameProviderProps, GameState> {
             }
         });
 
-        // Add ships for added players
+        // Process players
         players.forEach(player => {
-            if (!this.shipsContainer.getChildByLabel(player.id)) {
-                const ship = new Ship(this.app, player);
-                this.shipsContainer.addChild(ship);
-            }
+            this.addBullet(player);
+            this.addShip(player);
         });
     };
 
-    // handleHostPlayerUpdate = (payload: PlayerData, playerId?: string) => {
-    //     // Update ship
-    //     const ship = this.shipsContainer.children.find(s => s.playerId === playerId);
-    //     ship?.update(payload);
+    addBullet = (player: Player) => {
+        // Check if a button is pressed on host
+        if (!this.props.connection.host || (!player.buttons?.[0] && !player.buttons?.[1])) {
+            return;
+        }
 
-    //     // Add bullet if any button is pressed
-    //     if (ship && (payload.buttons?.[0] || payload.buttons?.[1])) {
-    //         let bullet = this.bulletsContainer.children.find(b => !b.playerId);
-    //         if (!bullet) {
-    //             bullet = new Bullet(this.app);
-    //             this.bulletsContainer.addChild(bullet);
-    //         }
-    //         bullet.fire(ship);
-    //     }
-    // };
+        // Get ship
+        const ship = this.shipsContainer.children.find(s => s.label === player.id);
+        if (!ship) {
+            return;
+        }
 
-    // handleViewersPlayersAdd = (players: Player[]) => {
-    //     this.debug('Add players', players);
+        // Find existing bullet or create new one
+        let bullet = this.bulletsContainer.children.find(b => !b.playerId);
+        if (!bullet) {
+            bullet = new Bullet(this.app);
+            this.bulletsContainer.addChild(bullet);
+        }
+        bullet.fire(ship);
+    };
 
-    //     // Add ships to canvas
-    //     players.forEach(player => {
-    //         const ship = new Ship(this.app, player);
-    //         this.shipsContainer.addChild(ship);
-    //     });
-    // };
+    addShip = (player: Player) => {
+        // Check if ship already exists
+        if (this.shipsContainer.getChildByLabel(player.id)) {
+            return;
+        }
 
-    // handleViewersPlayersRemove = (playerIds: string[]) => {
-    //     this.debug('Remove players', playerIds);
-
-    //     // Remove ships from canvas
-    //     playerIds.forEach(playerId => {
-    //         const ship = this.shipsContainer.getChildByLabel(playerId);
-    //         ship?.removeFromParent();
-    //     });
-    // };
-
-    // handleViewersGameTick = (payload: GameTick) => {
-    //     // Make sure there are enough bullets
-    //     while (payload.bullets.length > this.bulletsContainer.children.length) {
-    //         const bullet = new Bullet(this.app);
-    //         this.bulletsContainer.addChild(bullet);
-    //     }
-
-    //     // Set bullets
-    //     this.bulletsContainer.children.forEach((bullet, index) => {
-    //         const bulletData = payload.bullets[index];
-    //         if (bulletData) {
-    //             bullet.set(bulletData);
-    //         } else {
-    //             bullet.reset();
-    //         }
-    //     });
-
-    //     // Set ships
-    //     payload.ships.forEach(shipData => {
-    //         const ship = this.shipsContainer.getChildByLabel(shipData.playerId) as Ship | null;
-    //         ship?.set(shipData);
-    //     });
-    // };
+        // Add ship
+        const ship = new Ship(this.app, player);
+        this.shipsContainer.addChild(ship);
+    };
 
     hostTick = () => {
         // Tick elements
@@ -244,6 +215,21 @@ class Game extends Component<GameProviderProps, GameState> {
 
     handleViewerGameTick = (gameTick: GameTick) => {
         this.gameTick = gameTick;
+
+        // Set bullets
+        gameTick.bullets.forEach((bulletData, index) => {
+            let bullet = this.bulletsContainer.children[index];
+            if (!bullet) {
+                bullet = new Bullet(this.app);
+                this.bulletsContainer.addChild(bullet);
+            }
+            bullet.set(bulletData);
+        });
+
+        // Reset unused bullets
+        if (this.bulletsContainer.children.length > gameTick.bullets.length) {
+            this.bulletsContainer.children.slice(gameTick.bullets.length).forEach(bullet => bullet.reset());
+        }
 
         // Set ships
         gameTick.ships.forEach(shipData => {
