@@ -197,16 +197,14 @@ class Game extends Component<GameProviderProps, GameState> {
                 // Check distance
                 const dx = ship.x - bullet.position.x;
                 const dy = ship.y - bullet.position.y;
-                const distance = 1; // TODO: Math.sqrt(dx * dx + dy * dy);
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance > 16) {
                     continue;
                 }
 
                 // Hit ship
                 bullet.reset();
-                if (ship.hit()) {
-                    connection.emit('host.server.player.dead', ship.label);
-                }
+                ship.hit();
                 break;
             }
         }

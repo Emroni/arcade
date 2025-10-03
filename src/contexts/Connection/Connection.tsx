@@ -139,7 +139,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
     };
 
     // Socket methods
-    emit = (event: string, payload: any) => {
+    emit = (event: string, payload?: any) => {
         this.socket?.emit(event, payload);
     };
 

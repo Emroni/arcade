@@ -3,7 +3,7 @@ import { useConnection } from '@/contexts/Connection/Connection';
 import { PlayerButton } from '@/types';
 import { Cog8ToothIcon } from '@heroicons/react/24/solid';
 import _ from 'lodash';
-import { TouchEvent, useMemo, useRef, useState } from 'react';
+import { TouchEvent, useEffect, useMemo, useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
 import { PlayerControllerProps } from './PlayerController.types';
 
@@ -36,6 +36,15 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         // Get joystick rect
         return (containerObserver.width && joystickRef.current?.getBoundingClientRect()) || new DOMRect();
     }, [containerObserver.width]);
+
+    useEffect(() => {
+        connection.on('server.player.hit', () => {
+            console.log('You got hit');
+        });
+        connection.on('server.player.dead', () => {
+            console.log('You died');
+        });
+    }, [connection]);
 
     function handleTouchMove(e: TouchEvent) {
         // Get angle and radius

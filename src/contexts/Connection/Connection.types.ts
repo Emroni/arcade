@@ -16,7 +16,7 @@ export interface ConnectionState {
     players: Player[];
     role: string;
     viewers: number;
-    emit: (event: string, payload: any) => void;
+    emit: (event: string, payload?: any) => void;
     off: (event: string, listener: ConnectionListener) => void;
     on: (event: string, listener: ConnectionListener) => void;
     updatePlayer: (data: PlayerData) => void;

@@ -12,13 +12,16 @@ export class Ship extends PIXI.Container {
 
     // Constants
     healthMax = 3;
+    respawnDelay = 100;
     velocityDecay = 0.995;
     velocityEase = 0.1;
     velocityMultiplier = 20;
 
     // State
+    flashTimeout: NodeJS.Timeout | null = null;
     force = 0;
     health = 0;
+    respawnCount = 0;
     velocityX = 0;
     velocityY = 0;
 
@@ -72,27 +75,32 @@ export class Ship extends PIXI.Container {
 
     /** Stop movement */
     stop = () => {
+        this.flash(0);
         this.force = 0;
         this.velocityX = 0;
         this.velocityY = 0;
     };
 
-    /** Flash shape, for respawn, hit or death */
-    flash = (times: number, callback?: () => void) => {
-        // Trigger callback if no times remain
+    /** Flash shape opacity */
+    flash = (times: number) => {
+        // Clear existing
+        if (this.flashTimeout) {
+            clearTimeout(this.flashTimeout);
+            this.flashTimeout = null;
+        }
+        this.shape.alpha = this.health ? 1 : 0.3;
+
+        // Stop if no times left
         if (!times) {
-            callback?.();
             return;
         }
 
-        // Flash opacity
+        // Flash once
         this.shape.alpha = 0.7;
-        setTimeout(() => {
-            this.shape.alpha = 1;
-
-            // Flash again
-            setTimeout(() => {
-                this.flash(times - 1, callback);
+        this.flashTimeout = setTimeout(() => {
+            this.shape.alpha = this.health ? 1 : 0.3;
+            this.flashTimeout = setTimeout(() => {
+                this.flash(times - 1);
             }, 100);
         }, 100);
     };
@@ -154,9 +162,6 @@ export class Ship extends PIXI.Container {
         // Decrease health
         const health = this.health - 1;
         this.updateHealth(health);
-
-        // Return death
-        return health <= 0;
     };
 
     /** Update health bar to match health and handle death */
@@ -182,14 +187,15 @@ export class Ship extends PIXI.Container {
             this.flash(1);
         } else {
             this.stop();
-            this.flash(5, this.respawn);
+            this.flash(5);
+            this.respawnCount = this.respawnDelay;
         }
     };
 
     /** Game tick */
     tick = () => {
-        // Spawn if dead
-        if (!this.health) {
+        // Check health and respawn
+        if (!this.health && --this.respawnCount <= 0) {
             this.respawn();
         }
 

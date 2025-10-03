@@ -63,7 +63,6 @@ io.on('connection', socket => {
     if (role === 'viewer') {
         // Host
         socket.on('host.server.game.tick', handleHostGameTick);
-        socket.on('host.server.player.dead', handleHostPlayerDead);
 
         // Viewer
         socket.on('viewer.server.ready', () => handleViewerReady(socket));
@@ -94,11 +93,6 @@ function pickHost() {
 function handleHostGameTick(data: GameTick) {
     gameTick = data;
     io.to('viewer').except('host').emit('server.viewer.game.tick', data);
-}
-
-function handleHostPlayerDead(id: string) {
-    // TODO: Handle player dead
-    console.log('handleHostPlayerDead', id);
 }
 
 // Players
