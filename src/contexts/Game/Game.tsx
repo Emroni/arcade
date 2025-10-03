@@ -79,8 +79,8 @@ class Game extends Component<GameProviderProps, GameState> {
         connection.on('server.viewer.game.tick', this.handleViewerGameTick);
         window.addEventListener('resize', this.handleResize);
 
-        // Initial elements
-        this.updateElements();
+        // Mark as ready
+        connection.emit('viewer.server.ready');
     };
 
     componentWillUnmount() {
@@ -106,7 +106,7 @@ class Game extends Component<GameProviderProps, GameState> {
 
         // Update elements
         if (connection.players !== prevProps.connection.players) {
-            this.updateElements();
+            this.updateShips();
         }
     }
 
@@ -147,7 +147,7 @@ class Game extends Component<GameProviderProps, GameState> {
         this.container.position.set(centerX - size / 2, centerY - size / 2);
     };
 
-    updateElements = () => {
+    updateShips = () => {
         const { players } = this.props.connection;
 
         // Update existing ships
@@ -165,6 +165,7 @@ class Game extends Component<GameProviderProps, GameState> {
         // Add new ships
         players.forEach(player => {
             if (!this.shipsContainer.getChildByLabel(player.id)) {
+                // Add new ship
                 const ship = new Ship(this.app, player);
                 this.shipsContainer.addChild(ship);
             }

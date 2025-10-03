@@ -61,8 +61,12 @@ io.on('connection', socket => {
 
     // Viewer and host
     if (role === 'viewer') {
+        // Host
         socket.on('host.server.game.tick', handleHostGameTick);
         socket.on('host.server.player.dead', handleHostPlayerDead);
+
+        // Viewer
+        socket.on('viewer.server.ready', () => handleViewerReady(socket));
     }
 });
 
@@ -144,4 +148,10 @@ function syncViewers() {
         viewers: io.sockets.adapter.rooms.get('viewer')?.size || 0,
     };
     io.to('viewer').emit('server.viewer.sync', payload);
+}
+
+function handleViewerReady(socket: Socket) {
+    if (gameTick) {
+        socket.emit('server.viewer.game.tick', gameTick);
+    }
 }
