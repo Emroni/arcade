@@ -108,8 +108,11 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         this.setState({
             connected: false,
             connecting: false,
-            id: null,
             host: false,
+            id: null,
+            player: null,
+            players: [],
+            viewers: 0,
         });
     };
 
@@ -134,8 +137,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             }),
         }));
     };
-
-    handleViewerGameTick = (gameTick: GameTick) => {};
 
     handleViewerSync = (payload: ViewerSyncPayload) => {
         this.setState({
