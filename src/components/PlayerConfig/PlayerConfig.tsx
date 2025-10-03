@@ -13,9 +13,11 @@ export function PlayerConfig({ onClose }: PlayerConfigProps) {
 
     return (
         <div className="p-2">
-            <button className="h-8 w-8" onClick={onClose}>
-                <XMarkIcon />
-            </button>
+            <div className="text-right">
+                <button className="h-8 w-8" onClick={onClose}>
+                    <XMarkIcon />
+                </button>
+            </div>
 
             <div className="p-4 space-y-6">
                 {/* Name input */}

@@ -10,7 +10,7 @@ export default function Viewer() {
     }
 
     return (
-        <div className="flex h-screen">
+        <div className="flex h-dvh">
             <GameContainer />
             <Sidebar />
         </div>

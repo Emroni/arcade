@@ -20,7 +20,7 @@ export function JoinModal({ onClose }: JoinModalProps) {
             <div className="bg-black fixed opacity-50 inset-0" />
 
             {/* Container */}
-            <div className="flex h-screen items-center justify-center p-4">
+            <div className="flex h-dvh items-center justify-center p-4">
                 <div className="bg-black max-w-2xs p-4 relative w-full" ref={contentRef}>
                     {/* Close button */}
                     <div className="absolute right-0 top-0 p-4">

@@ -80,10 +80,12 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
     }
 
     return (
-        <div className="h-screen p-8 relative select-none touch-none" ref={containerObserver.ref}>
-            <button className="absolute h-8 left-2 top-2 w-8" onClick={onShowConfig}>
-                <Cog8ToothIcon />
-            </button>
+        <div className="h-dvh p-8 relative select-none touch-none" ref={containerObserver.ref}>
+            <div className="absolute right-2 top-2">
+                <button className="h-8 w-8" onClick={onShowConfig}>
+                    <Cog8ToothIcon />
+                </button>
+            </div>
 
             <svg height="100%" viewBox="0 0 400 200" width="100%">
                 {/* Joystick */}
