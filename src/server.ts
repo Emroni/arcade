@@ -2,7 +2,7 @@ import dotenvFlow from 'dotenv-flow';
 import { Server, Socket } from 'socket.io';
 import { debugServer } from './debug';
 import { GameTick } from './game/types';
-import { Player, PlayerData } from './types';
+import { Player, PlayerButton, PlayerButtonPayload, PlayerData } from './types';
 import { ViewerSyncPayload } from './types/viewer';
 
 // Configuration
@@ -54,6 +54,7 @@ io.on('connection', socket => {
     // Players
     if (role === 'player') {
         socket.on('player.server.add', player => addPlayer(socket, player));
+        socket.on('player.server.button', button => handlePlayerButton(socket, button));
         socket.on('player.server.config', data => configPlayer(socket, data));
         socket.on('player.server.control', data => controlPlayer(socket, data));
     }
@@ -93,6 +94,14 @@ function updateGameTick(data: GameTick) {
 function addPlayer(socket: Socket, player: Player) {
     players.set(socket.id, player);
     syncViewers();
+}
+
+function handlePlayerButton(socket: Socket, button: PlayerButton) {
+    const payload: PlayerButtonPayload = {
+        button,
+        id: socket.id,
+    };
+    io.to('host').emit('server.host.player.button', payload);
 }
 
 function configPlayer(socket: Socket, data: PlayerData) {

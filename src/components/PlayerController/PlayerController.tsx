@@ -1,10 +1,11 @@
 'use client';
 import { useConnection } from '@/contexts/Connection/Connection';
+import { PlayerButton } from '@/types';
 import { Cog8ToothIcon } from '@heroicons/react/24/solid';
 import _ from 'lodash';
 import { TouchEvent, useMemo, useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
-import { PlayerControllerButtons, PlayerControllerJoystick, PlayerControllerProps } from './PlayerController.types';
+import { PlayerControllerJoystick, PlayerControllerProps } from './PlayerController.types';
 
 const joystickReset = {
     amount: 0,
@@ -13,30 +14,29 @@ const joystickReset = {
 };
 
 export function PlayerController({ onShowConfig }: PlayerControllerProps) {
-    const [buttons, setButtons] = useState<PlayerControllerButtons>({ a: false, b: false });
     const [joystick, setJoystick] = useState<PlayerControllerJoystick>({ ...joystickReset, angle: 0 });
     const connection = useConnection();
     const containerObserver = useResizeObserver();
     const joystickRef = useRef<SVGGElement>(null);
 
+    // Throttle button handler
+    const handleButton = useMemo(() => {
+        return _.throttle(
+            (button: PlayerButton) => {
+                connection.emit('player.server.button', button);
+            },
+            200,
+            {
+                leading: true,
+                trailing: true,
+            }
+        );
+    }, [connection]);
+
     const joystickRect = useMemo(() => {
         // Get joystick rect
         return (containerObserver.width && joystickRef.current?.getBoundingClientRect()) || new DOMRect();
     }, [containerObserver.width]);
-
-    function handleButton(button: 'a' | 'b', pressed: boolean) {
-        // Update buttons state
-        const newButtons = {
-            ...buttons,
-            [button]: pressed,
-        };
-        setButtons(newButtons);
-
-        // Emit event
-        connection.emit('player.server.control', {
-            buttons: [newButtons.a, newButtons.b],
-        });
-    }
 
     function handleTouchMove(e: TouchEvent) {
         // Get angle and radius
@@ -109,16 +109,16 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
                 </g>
 
                 {/* A button */}
-                <g onTouchEnd={() => handleButton('a', false)} onTouchStart={() => handleButton('a', true)}>
-                    <circle cx={370} cy={70} fill={connection.player.color} fillOpacity={buttons.a ? 0.5 : 1} r={30} />
+                <g onClick={() => handleButton('a')}>
+                    <circle cx={370} cy={70} fill={connection.player.color} r={30} />
                     <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={370} y={70}>
                         A
                     </text>
                 </g>
 
                 {/* B button */}
-                <g onTouchEnd={() => handleButton('b', false)} onTouchStart={() => handleButton('b', true)}>
-                    <circle cx={300} cy={130} fill={connection.player.color} fillOpacity={buttons.b ? 0.5 : 1} r={30} />
+                <g onClick={() => handleButton('b')}>
+                    <circle cx={300} cy={130} fill={connection.player.color} r={30} />
                     <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={300} y={130}>
                         B
                     </text>

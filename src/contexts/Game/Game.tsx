@@ -2,7 +2,7 @@
 import { debugClient } from '@/debug';
 import { Bullet, Ship } from '@/game';
 import { GameTick } from '@/game/types';
-import { Player } from '@/types';
+import { PlayerButtonPayload } from '@/types';
 import { compose } from '@/utils';
 import _ from 'lodash';
 import * as PIXI from 'pixi.js';
@@ -74,6 +74,7 @@ class Game extends Component<GameProviderProps, GameState> {
         });
 
         // Add listeners
+        connection.on('server.host.player.button', this.handleHostPlayerButton);
         connection.on('server.viewer.game.tick', this.handleViewerGameTick);
         window.addEventListener('resize', this.handleResize);
 
@@ -158,43 +159,13 @@ class Game extends Component<GameProviderProps, GameState> {
             }
         });
 
-        // Process players
+        // Add new ships
         players.forEach(player => {
-            this.addBullet(player);
-            this.addShip(player);
+            if (!this.shipsContainer.getChildByLabel(player.id)) {
+                const ship = new Ship(this.app, player);
+                this.shipsContainer.addChild(ship);
+            }
         });
-    };
-
-    addBullet = (player: Player) => {
-        // Check if a button is pressed on host
-        if (!this.props.connection.host || (!player.buttons?.[0] && !player.buttons?.[1])) {
-            return;
-        }
-
-        // Get ship
-        const ship = this.shipsContainer.children.find(s => s.label === player.id);
-        if (!ship) {
-            return;
-        }
-
-        // Find existing bullet or create new one
-        let bullet = this.bulletsContainer.children.find(b => !b.playerId);
-        if (!bullet) {
-            bullet = new Bullet(this.app);
-            this.bulletsContainer.addChild(bullet);
-        }
-        bullet.fire(ship);
-    };
-
-    addShip = (player: Player) => {
-        // Check if ship already exists
-        if (this.shipsContainer.getChildByLabel(player.id)) {
-            return;
-        }
-
-        // Add ship
-        const ship = new Ship(this.app, player);
-        this.shipsContainer.addChild(ship);
     };
 
     hostTick = () => {
@@ -211,6 +182,22 @@ class Game extends Component<GameProviderProps, GameState> {
             this.gameTick = newGameTick;
             this.props.connection.emit('host.server.game.tick', newGameTick);
         }
+    };
+
+    handleHostPlayerButton = (payload: PlayerButtonPayload) => {
+        // Get ship
+        const ship = this.shipsContainer.children.find(s => s.label === payload.id);
+        if (!ship) {
+            return;
+        }
+
+        // Find existing bullet or create new one
+        let bullet = this.bulletsContainer.children.find(b => !b.playerId);
+        if (!bullet) {
+            bullet = new Bullet(this.app);
+            this.bulletsContainer.addChild(bullet);
+        }
+        bullet.fire(ship);
     };
 
     handleViewerGameTick = (gameTick: GameTick) => {

@@ -180,7 +180,6 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Create player
         const player: Player = {
-            buttons: [false, false],
             color: `#${Math.floor(Math.random() * 16777215)
                 .toString(16)
                 .padStart(6, '0')}`,
