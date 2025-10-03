@@ -90,7 +90,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
                 </g>
 
                 {/* A button */}
-                <g onClick={() => handleButton('a')}>
+                <g onTouchStart={() => handleButton('a')}>
                     <circle cx={370} cy={70} fill={color} r={30} />
                     <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={370} y={70}>
                         A
@@ -98,7 +98,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
                 </g>
 
                 {/* B button */}
-                <g onClick={() => handleButton('b')}>
+                <g onTouchStart={() => handleButton('b')}>
                     <circle cx={300} cy={130} fill={color} r={30} />
                     <text dominantBaseline="middle" fill="#000000" fontSize={24} textAnchor="middle" x={300} y={130}>
                         B
