@@ -171,19 +171,46 @@ class Game extends Component<GameProviderProps, GameState> {
         });
     };
 
+    // Host
     hostTick = () => {
         // Tick elements
         const bullets = this.bulletsContainer.children.filter(bullet => bullet.playerId).map(bullet => bullet.tick());
         const ships = this.shipsContainer.children.map(ship => ship.tick());
 
+        // Check collisions
+        for (const bullet of this.bulletsContainer.children) {
+            // Skip inactive bullets
+            if (!bullet.playerId) {
+                continue;
+            }
+
+            // Check against ships
+            for (const ship of this.shipsContainer.children) {
+                // Skip own bullet
+                if (ship.label === bullet.playerId) {
+                    continue;
+                }
+
+                // Check distance
+                const dx = ship.x - bullet.position.x;
+                const dy = ship.y - bullet.position.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 16) {
+                    // Hit
+                    ship.hit();
+                    bullet.reset();
+                }
+            }
+        }
+
         // Emit event
-        const newGameTick: GameTick = {
+        const gameTick: GameTick = {
             bullets,
             ships,
         };
-        if (!_.isEqual(this.gameTick, newGameTick)) {
-            this.gameTick = newGameTick;
-            this.props.connection.emit('host.server.game.tick', newGameTick);
+        if (!_.isEqual(this.gameTick, gameTick)) {
+            this.gameTick = gameTick;
+            this.props.connection.emit('host.server.game.tick', gameTick);
         }
     };
 
@@ -208,6 +235,7 @@ class Game extends Component<GameProviderProps, GameState> {
         ship?.control(payload);
     };
 
+    // Viewer
     handleViewerGameTick = (gameTick: GameTick) => {
         this.gameTick = gameTick;
 

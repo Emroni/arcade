@@ -59,9 +59,9 @@ io.on('connection', socket => {
         socket.on('player.server.control', data => handlePlayerControl(socket, data));
     }
 
-    // Viewers
+    // Viewers and host
     if (role === 'viewer') {
-        socket.on('host.server.game.tick', updateGameTick);
+        socket.on('host.server.game.tick', handleHostGameTick);
     }
 });
 
@@ -85,7 +85,8 @@ function pickHost() {
     }
 }
 
-function updateGameTick(data: GameTick) {
+// Host
+function handleHostGameTick(data: GameTick) {
     gameTick = data;
     io.to('viewer').except('host').emit('server.viewer.game.tick', data);
 }
