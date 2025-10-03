@@ -1,8 +1,10 @@
 'use client';
 import { useConnection } from '@/contexts/Connection/Connection';
-import QRCode from 'react-qr-code';
+import { useState } from 'react';
+import { JoinModal } from '../JoinModal/JoinModal';
 
 export function Sidebar() {
+    const [joinModal, setJoinModal] = useState(false);
     const connection = useConnection();
 
     return (
@@ -20,13 +22,18 @@ export function Sidebar() {
                     ))}
                 </ul>
             </div>
+
+            {/* Join */}
             <div>
-                <a className="underline" href="/player" rel="noreferrer" target="_blank">
-                    Join now
-                </a>
-                <div className="bg-white w-16">
-                    <QRCode size={128} value={`${window.location.origin}/player`} viewBox="0 0 128 128" />
-                </div>
+                <button
+                    className="bg-indigo-500 p-1 rounded uppercase w-full"
+                    type="button"
+                    onClick={() => setJoinModal(true)}
+                >
+                    Join
+                </button>
+
+                {joinModal && <JoinModal onClose={() => setJoinModal(false)} />}
             </div>
         </aside>
     );
