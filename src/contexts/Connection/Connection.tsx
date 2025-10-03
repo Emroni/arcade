@@ -165,9 +165,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Create player
         const player: Player = {
-            color: `#${Math.floor(Math.random() * 16777215)
-                .toString(16)
-                .padStart(6, '0')}`,
+            color: `hsl(${_.random(0, 360)}, 90%, 50%)`,
             id,
             name: `Player ${_.random(1000, 9999)}`,
             score: 0,

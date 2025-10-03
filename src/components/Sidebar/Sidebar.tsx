@@ -14,7 +14,7 @@ export function Sidebar() {
                 <div>Host: {connection.host ? 'true' : 'false'}</div>
                 <div>Viewers: {connection.viewers}</div>
                 <div>Players: {connection.players.length}</div>
-                <ul className="list-disc list-inside">
+                <ul className="mt-4">
                     {connection.players.map(player => (
                         <li key={player.id} style={{ color: player.color }}>
                             [{player.score}] {player.name}
