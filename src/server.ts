@@ -1,13 +1,16 @@
 import dotenvFlow from 'dotenv-flow';
 import { Server, Socket } from 'socket.io';
 import { debugServer } from './debug';
+import { GameTick } from './game/types';
+import { Player, PlayerData } from './types';
+import { ViewerSyncPayload } from './types/viewer';
 
 // Configuration
 dotenvFlow.config();
 
 // Properties
-let host: Socket | null;
-const viewers: Socket[] = [];
+let gameTick: GameTick | null = null;
+const players: Map<string, Player> = new Map();
 
 // Create server
 const io = new Server(process.env.SERVER_PORT, {
@@ -15,7 +18,7 @@ const io = new Server(process.env.SERVER_PORT, {
         origin: '*',
     },
 });
-console.log(`Server ready on port ${process.env.SERVER_PORT}`);
+debugServer('socket', `Ready on port ${process.env.SERVER_PORT}`);
 
 // Handle connections
 io.on('connection', socket => {
@@ -27,81 +30,103 @@ io.on('connection', socket => {
         return;
     }
 
-    // Add as viewer
+    // Join role room
     debugServer(role, `[${socket.id}] Connected`);
-    if (role === 'viewer') {
-        viewers.push(socket);
-    }
+    socket.join(role);
+    pickHost();
+    syncViewers();
 
     // Handle disconnect
     socket.on('disconnect', () => {
         debugServer(role, `[${socket.id}] Disconnected`);
 
-        // Remove from viewers
-        const viewerIndex = viewers.indexOf(socket);
-        if (viewerIndex !== -1) {
-            viewers.splice(viewerIndex, 1);
+        // Handle role
+        if (role === 'player') {
+            players.delete(socket.id);
+        } else if (role === 'viewer') {
+            pickHost();
         }
 
-        // Notify host
-        if (host && host.id !== socket.id) {
-            host.emit('host.peer.remove', {
-                id: socket.id,
-                role,
-            });
-        }
-
-        // Check if host
-        if (host?.id === socket.id) {
-            debugServer(role, `[${socket.id}] Lost as host`);
-            host = null;
-
-            // Pick new host
-            if (viewers.length > 0) {
-                host = viewers[0];
-                host.emit('host.set');
-                debugServer(role, `[${host.id}] Set as new host`);
-            }
-        }
+        // Sync viewers
+        syncViewers();
     });
 
-    // Set up as host
-    if (!host && role === 'viewer') {
-        host = socket;
-        debugServer(role, `[${socket.id}] Set as host`);
-        socket.emit('host.set');
+    // Players
+    if (role === 'player') {
+        socket.on('player.server.add', player => addPlayer(socket, player));
+        socket.on('player.server.config', data => configPlayer(socket, data));
+        socket.on('player.server.control', data => controlPlayer(socket, data));
     }
 
-    // Notify host
-    if (host && host.id !== socket.id) {
-        host.emit('host.peer.add', {
-            id: socket.id,
-            role,
-        });
+    // Viewers
+    if (role === 'viewer') {
+        socket.on('host.server.game.tick', updateGameTick);
     }
-
-    // WebRTC signaling relay
-    socket.on('webrtc.offer', data => {
-        debugServer('webrtc', `Relaying offer from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('webrtc.offer', {
-            offer: data.offer,
-            from: socket.id,
-        });
-    });
-
-    socket.on('webrtc.answer', data => {
-        debugServer('webrtc', `Relaying answer from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('webrtc.answer', {
-            answer: data.answer,
-            from: socket.id,
-        });
-    });
-
-    socket.on('ice.candidate', data => {
-        debugServer('webrtc', `Relaying ICE candidate from ${socket.id} to ${data.target}`);
-        io.to(data.target).emit('ice.candidate', {
-            candidate: data.candidate,
-            from: socket.id,
-        });
-    });
 });
+
+// Host
+function pickHost() {
+    // Check current host
+    const hostRoom = io.sockets.adapter.rooms.get('host');
+    if (hostRoom?.size) {
+        return;
+    }
+
+    // Pick new host from viewers
+    const viewerRoom = io.sockets.adapter.rooms.get('viewer');
+    const viewerIds = viewerRoom ? Array.from(viewerRoom) : [];
+    const newHostId = viewerIds?.[0];
+    const newHostSocket = io.sockets.sockets.get(newHostId);
+    if (newHostSocket) {
+        newHostSocket.join('host');
+        newHostSocket.emit('server.host.set', gameTick);
+        debugServer('viewer', `[${newHostId}] Set as new host`);
+    }
+}
+
+function updateGameTick(data: GameTick) {
+    gameTick = data;
+    io.to('viewer').except('host').emit('server.viewer.game.tick', data);
+}
+
+// Players
+function addPlayer(socket: Socket, player: Player) {
+    players.set(socket.id, player);
+    syncViewers();
+}
+
+function configPlayer(socket: Socket, data: PlayerData) {
+    updatePlayer(socket, data);
+    syncViewers();
+}
+
+function controlPlayer(socket: Socket, data: PlayerData) {
+    updatePlayer(socket, data);
+    io.to('host').emit('server.host.player.control', {
+        id: socket.id,
+        ...data,
+    });
+}
+
+function updatePlayer(socket: Socket, data: PlayerData) {
+    // Get player
+    const player = players.get(socket.id);
+    if (!player) {
+        return;
+    }
+
+    // Update player
+    players.set(socket.id, {
+        ...player,
+        ...data,
+    });
+}
+
+// Viewers
+function syncViewers() {
+    const payload: ViewerSyncPayload = {
+        players: Array.from(players.values()),
+        viewers: io.sockets.adapter.rooms.get('viewer')?.size || 0,
+    };
+    io.to('viewer').emit('server.viewer.sync', payload);
+}

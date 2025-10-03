@@ -49,7 +49,7 @@ export class Bullet extends PIXI.Container {
     fire = (ship: Ship) => {
         this.set({
             ...ship.get(),
-            playerId: ship.playerId,
+            playerId: ship.label,
         });
     };
 
