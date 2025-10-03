@@ -51,7 +51,7 @@ io.on('connection', socket => {
         syncViewers();
     });
 
-    // Players
+    // Player
     if (role === 'player') {
         socket.on('player.server.add', player => handlePlayerAdd(socket, player));
         socket.on('player.server.button', button => handlePlayerButton(socket, button));
@@ -59,9 +59,10 @@ io.on('connection', socket => {
         socket.on('player.server.control', data => handlePlayerControl(socket, data));
     }
 
-    // Viewers and host
+    // Viewer and host
     if (role === 'viewer') {
         socket.on('host.server.game.tick', handleHostGameTick);
+        socket.on('host.server.player.dead', handleHostPlayerDead);
     }
 });
 
@@ -89,6 +90,11 @@ function pickHost() {
 function handleHostGameTick(data: GameTick) {
     gameTick = data;
     io.to('viewer').except('host').emit('server.viewer.game.tick', data);
+}
+
+function handleHostPlayerDead(id: string) {
+    // TODO: Handle player dead
+    console.log('handleHostPlayerDead', id);
 }
 
 // Players

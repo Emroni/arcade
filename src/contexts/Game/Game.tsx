@@ -173,6 +173,8 @@ class Game extends Component<GameProviderProps, GameState> {
 
     // Host
     hostTick = () => {
+        const { connection } = this.props;
+
         // Tick elements
         const bullets = this.bulletsContainer.children.filter(bullet => bullet.playerId).map(bullet => bullet.tick());
         const ships = this.shipsContainer.children.map(ship => ship.tick());
@@ -186,20 +188,25 @@ class Game extends Component<GameProviderProps, GameState> {
 
             // Check against ships
             for (const ship of this.shipsContainer.children) {
-                // Skip own bullet
-                if (ship.label === bullet.playerId) {
+                // Skip dead ships and own bullets
+                if (!ship.health || ship.label === bullet.playerId) {
                     continue;
                 }
 
                 // Check distance
                 const dx = ship.x - bullet.position.x;
                 const dy = ship.y - bullet.position.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < 16) {
-                    // Hit
-                    ship.hit();
-                    bullet.reset();
+                const distance = 1; // TODO: Math.sqrt(dx * dx + dy * dy);
+                if (distance > 16) {
+                    continue;
                 }
+
+                // Hit ship
+                bullet.reset();
+                if (ship.hit()) {
+                    connection.emit('host.server.player.dead', ship.label);
+                }
+                break;
             }
         }
 
@@ -210,7 +217,7 @@ class Game extends Component<GameProviderProps, GameState> {
         };
         if (!_.isEqual(this.gameTick, gameTick)) {
             this.gameTick = gameTick;
-            this.props.connection.emit('host.server.game.tick', gameTick);
+            connection.emit('host.server.game.tick', gameTick);
         }
     };
 

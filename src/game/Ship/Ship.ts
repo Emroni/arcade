@@ -4,15 +4,19 @@ import * as PIXI from 'pixi.js';
 import { ShipData } from './Ship.types';
 
 export class Ship extends PIXI.Container {
+    // Elements
     app: PIXI.Application;
     healthBar: PIXI.Graphics;
     nameText: PIXI.Text;
     shape: PIXI.Graphics;
 
+    // Constants
+    healthMax = 3;
     velocityDecay = 0.995;
     velocityEase = 0.1;
     velocityMultiplier = 20;
 
+    // State
     force = 0;
     health = 0;
     velocityX = 0;
@@ -24,7 +28,7 @@ export class Ship extends PIXI.Container {
             label: player.id,
         });
 
-        // Initialize properties
+        // Initialize elements
         this.app = app;
 
         // Add shape
@@ -56,22 +60,24 @@ export class Ship extends PIXI.Container {
         this.addChild(this.nameText);
         this.nameText.x = -this.nameText.width / 2;
         this.nameText.y = 24;
-
-        // Initialize state
-        this.reset();
-        this.flash(2);
     }
 
-    reset = () => {
-        this.force = 0;
-        this.health = 3;
-        this.velocityX = 0;
-        this.velocityY = 0;
+    /** Respawn in random location */
+    respawn = () => {
+        this.updateHealth(this.healthMax);
         this.x = _.random(0, 1000);
         this.y = _.random(0, 1000);
-        this.updateHealth();
+        this.flash(2);
     };
 
+    /** Stop movement */
+    stop = () => {
+        this.force = 0;
+        this.velocityX = 0;
+        this.velocityY = 0;
+    };
+
+    /** Flash shape, for respawn, hit or death */
     flash = (times: number, callback?: () => void) => {
         // Trigger callback if no times remain
         if (!times) {
@@ -91,8 +97,10 @@ export class Ship extends PIXI.Container {
         }, 100);
     };
 
+    /** Get game properties */
     get = () => {
         return {
+            health: this.health,
             id: this.label,
             position: [this.x, this.y],
             rotation: this.shape.rotation,
@@ -100,13 +108,16 @@ export class Ship extends PIXI.Container {
         } as ShipData;
     };
 
+    /** Set game properties */
     set = (data: ShipData) => {
         this.position.set(data.position[0], data.position[1]);
         this.shape.rotation = data.rotation;
         this.velocityX = data.velocity[0];
         this.velocityY = data.velocity[1];
+        this.updateHealth(data.health);
     };
 
+    /** Set player control properties */
     control = (payload: PlayerControlPayload) => {
         // Parse angle
         if (payload.angle !== undefined) {
@@ -119,6 +130,7 @@ export class Ship extends PIXI.Container {
         }
     };
 
+    /** Update player config properties */
     update = (data: PlayerData) => {
         // Parse color
         if (data.color !== undefined) {
@@ -132,6 +144,7 @@ export class Ship extends PIXI.Container {
         }
     };
 
+    /** Mark hit by bullet */
     hit = () => {
         // Check current health
         if (!this.health) {
@@ -139,29 +152,47 @@ export class Ship extends PIXI.Container {
         }
 
         // Decrease health
-        this.health = Math.max(0, this.health - 1);
-        this.updateHealth();
+        const health = this.health - 1;
+        this.updateHealth(health);
 
-        // Flash if hit or reset if killed
-        if (this.health) {
-            this.flash(1);
-        } else {
-            this.flash(5, this.reset);
-        }
+        // Return death
+        return health <= 0;
     };
 
-    updateHealth = () => {
+    /** Update health bar to match health and handle death */
+    updateHealth = (value: number) => {
+        // Update property
+        const health = _.clamp(value, 0, this.healthMax);
+        if (this.health === health) {
+            return;
+        }
+        this.health = health;
+
         // Fill red
         this.healthBar.clear();
         this.healthBar.rect(0, 0, 32, 2);
         this.healthBar.fill('#ff0000');
 
         // Overlay green
-        this.healthBar.rect(0, 0, (32 * this.health) / 3, 2);
+        this.healthBar.rect(0, 0, (32 * this.health) / this.healthMax, 2);
         this.healthBar.fill('#00ff00');
+
+        // Flash hit or die
+        if (health) {
+            this.flash(1);
+        } else {
+            this.stop();
+            this.flash(5, this.respawn);
+        }
     };
 
+    /** Game tick */
     tick = () => {
+        // Spawn if dead
+        if (!this.health) {
+            this.respawn();
+        }
+
         // Update velocity
         if (this.force && this.health) {
             const force = this.force * this.velocityMultiplier;
