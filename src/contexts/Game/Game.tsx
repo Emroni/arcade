@@ -203,8 +203,10 @@ class Game extends Component<GameProviderProps, GameState> {
                 }
 
                 // Hit ship
+                if (ship.hit()) {
+                    connection.updatePlayerScore(bullet.playerId);
+                }
                 bullet.reset();
-                ship.hit();
                 break;
             }
         }

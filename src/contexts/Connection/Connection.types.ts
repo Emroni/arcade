@@ -20,4 +20,5 @@ export interface ConnectionState {
     off: (event: string, listener: ConnectionListener) => void;
     on: (event: string, listener: ConnectionListener) => void;
     updatePlayer: (data: PlayerData) => void;
+    updatePlayerScore: (playerId: string) => void;
 }

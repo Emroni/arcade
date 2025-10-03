@@ -152,7 +152,7 @@ export class Ship extends PIXI.Container {
         }
     };
 
-    /** Mark hit by bullet */
+    /** Mark hit by bullet, returns if dead */
     hit = () => {
         // Check current health
         if (!this.health) {
@@ -162,6 +162,9 @@ export class Ship extends PIXI.Container {
         // Decrease health
         const health = this.health - 1;
         this.updateHealth(health);
+
+        // Return death
+        return health <= 0;
     };
 
     /** Update health bar to match health and handle death */

@@ -55,14 +55,15 @@ io.on('connection', socket => {
     if (role === 'player') {
         socket.on('player.server.add', player => handlePlayerAdd(socket, player));
         socket.on('player.server.button', button => handlePlayerButton(socket, button));
-        socket.on('player.server.config', data => handlePlayerConfig(socket, data));
         socket.on('player.server.control', data => handlePlayerControl(socket, data));
+        socket.on('player.server.update', data => handlePlayerUpdate(socket, data));
     }
 
     // Viewer and host
     if (role === 'viewer') {
         // Host
         socket.on('host.server.game.tick', handleHostGameTick);
+        socket.on('host.server.player.update', data => handleHostPlayerUpdate(data));
 
         // Viewer
         socket.on('viewer.server.ready', () => handleViewerReady(socket));
@@ -95,6 +96,11 @@ function handleHostGameTick(data: GameTick) {
     io.to('viewer').except('host').emit('server.viewer.game.tick', data);
 }
 
+function handleHostPlayerUpdate(data: PlayerData) {
+    updatePlayer(data.id!, data);
+    syncViewers();
+}
+
 // Players
 function handlePlayerAdd(socket: Socket, player: Player) {
     players.set(socket.id, player);
@@ -109,11 +115,6 @@ function handlePlayerButton(socket: Socket, button: PlayerButton) {
     io.to('host').emit('server.host.player.button', payload);
 }
 
-function handlePlayerConfig(socket: Socket, data: PlayerData) {
-    updatePlayer(socket, data);
-    syncViewers();
-}
-
 function handlePlayerControl(socket: Socket, data: PlayerControlPayload) {
     io.to('host').emit('server.host.player.control', {
         ...data,
@@ -121,15 +122,20 @@ function handlePlayerControl(socket: Socket, data: PlayerControlPayload) {
     });
 }
 
-function updatePlayer(socket: Socket, data: PlayerData) {
+function handlePlayerUpdate(socket: Socket, data: PlayerData) {
+    updatePlayer(socket.id, data);
+    syncViewers();
+}
+
+function updatePlayer(id: string, data: PlayerData) {
     // Get player
-    const player = players.get(socket.id);
+    const player = players.get(id);
     if (!player) {
         return;
     }
 
     // Update player
-    players.set(socket.id, {
+    players.set(id, {
         ...player,
         ...data,
     });

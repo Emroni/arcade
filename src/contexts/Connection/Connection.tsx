@@ -44,6 +44,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
             off: this.off,
             on: this.on,
             updatePlayer: this.updatePlayer,
+            updatePlayerScore: this.updatePlayerScore,
         };
     }
 
@@ -169,6 +170,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
                 .padStart(6, '0')}`,
             id,
             name: `Player ${_.random(1000, 9999)}`,
+            score: 0,
         };
 
         // Apply locally stored data
@@ -211,6 +213,19 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
 
         // Emit event
         this.emit('player.server.config', data);
+    };
+
+    updatePlayerScore = async (playerId: string) => {
+        // Update state
+        const newState = await this.updateState(prevState => ({
+            players: prevState.players.map(p => (p.id === playerId ? { ...p, score: p.score + 1 } : p)),
+        }));
+
+        // Emit event
+        this.emit('host.server.player.update', {
+            id: playerId,
+            score: newState.players.find(p => p.id === playerId)?.score || 0,
+        });
     };
 
     render() {
