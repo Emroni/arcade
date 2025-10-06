@@ -8,7 +8,7 @@ export class Ship extends PIXI.Container {
     app: PIXI.Application;
     healthBar: PIXI.Graphics;
     nameText: PIXI.Text;
-    shape: PIXI.Graphics;
+    sprite: PIXI.Sprite;
 
     // Constants
     healthMax = 3;
@@ -34,17 +34,17 @@ export class Ship extends PIXI.Container {
         // Initialize elements
         this.app = app;
 
-        // Add shape
-        this.shape = new PIXI.Graphics();
-        this.addChild(this.shape);
-        this.shape.clear();
-        this.shape.moveTo(0, 0);
-        this.shape.lineTo(32, 8);
-        this.shape.lineTo(0, 16);
-        this.shape.lineTo(0, 0);
-        this.shape.fill('#ffffff');
-        this.shape.pivot.set(16, 8);
-        this.shape.tint = player.color || '#ffffff';
+        // Add sprite
+        this.sprite = new PIXI.Sprite();
+        this.addChild(this.sprite);
+        this.sprite.anchor.set(0.5);
+        this.sprite.scale.set(0.7);
+        this.sprite.tint = player.color || '#ffffff';
+
+        // Load texture
+        PIXI.Assets.load('ship.png').then(texture => {
+            this.sprite.texture = texture;
+        });
 
         // Add health bar
         this.healthBar = new PIXI.Graphics();
@@ -68,6 +68,7 @@ export class Ship extends PIXI.Container {
     /** Respawn in random location */
     respawn = () => {
         this.updateHealth(this.healthMax);
+        this.sprite.rotation = _.random(0, Math.PI * 2, true);
         this.x = _.random(0, 1000);
         this.y = _.random(0, 1000);
         this.flash(2);
@@ -81,14 +82,14 @@ export class Ship extends PIXI.Container {
         this.velocityY = 0;
     };
 
-    /** Flash shape opacity */
+    /** Flash sprite opacity */
     flash = (times: number) => {
         // Clear existing
         if (this.flashTimeout) {
             clearTimeout(this.flashTimeout);
             this.flashTimeout = null;
         }
-        this.shape.alpha = this.health ? 1 : 0.3;
+        this.sprite.alpha = this.health ? 1 : 0.3;
 
         // Stop if no times left
         if (!times) {
@@ -96,9 +97,9 @@ export class Ship extends PIXI.Container {
         }
 
         // Flash once
-        this.shape.alpha = 0.7;
+        this.sprite.alpha = 0.7;
         this.flashTimeout = setTimeout(() => {
-            this.shape.alpha = this.health ? 1 : 0.3;
+            this.sprite.alpha = this.health ? 1 : 0.3;
             this.flashTimeout = setTimeout(() => {
                 this.flash(times - 1);
             }, 100);
@@ -111,7 +112,7 @@ export class Ship extends PIXI.Container {
             health: this.health,
             id: this.label,
             position: [this.x, this.y],
-            rotation: this.shape.rotation,
+            rotation: this.sprite.rotation,
             velocity: [this.velocityX, this.velocityY],
         } as ShipData;
     };
@@ -119,7 +120,7 @@ export class Ship extends PIXI.Container {
     /** Set game properties */
     set = (data: ShipData) => {
         this.position.set(data.position[0], data.position[1]);
-        this.shape.rotation = data.rotation;
+        this.sprite.rotation = data.rotation;
         this.velocityX = data.velocity[0];
         this.velocityY = data.velocity[1];
         this.updateHealth(data.health);
@@ -129,7 +130,7 @@ export class Ship extends PIXI.Container {
     control = (payload: PlayerControlPayload) => {
         // Parse angle
         if (payload.angle !== undefined) {
-            this.shape.rotation = payload.angle;
+            this.sprite.rotation = payload.angle;
         }
 
         // Parse force
@@ -142,7 +143,7 @@ export class Ship extends PIXI.Container {
     update = (data: PlayerData) => {
         // Parse color
         if (data.color !== undefined) {
-            this.shape.tint = data.color;
+            this.sprite.tint = data.color;
         }
 
         // Parse name
@@ -205,8 +206,8 @@ export class Ship extends PIXI.Container {
         // Update velocity
         if (this.force && this.health) {
             const force = this.force * this.velocityMultiplier;
-            const targetVelocityX = Math.cos(this.shape.rotation) * force;
-            const targetVelocityY = Math.sin(this.shape.rotation) * force;
+            const targetVelocityX = Math.cos(this.sprite.rotation) * force;
+            const targetVelocityY = Math.sin(this.sprite.rotation) * force;
             this.velocityX += (targetVelocityX - this.velocityX) * this.velocityEase;
             this.velocityY += (targetVelocityY - this.velocityY) * this.velocityEase;
         }
