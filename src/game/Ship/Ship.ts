@@ -1,0 +1,232 @@
+import { Player, PlayerControlPayload, PlayerData } from '@/types';
+import _ from 'lodash';
+import * as PIXI from 'pixi.js';
+import { ShipData } from './Ship.types';
+
+export class Ship extends PIXI.Container {
+    // Elements
+    app: PIXI.Application;
+    healthBar: PIXI.Graphics;
+    nameText: PIXI.Text;
+    sprite: PIXI.Sprite;
+
+    // Constants
+    healthMax = 3;
+    respawnDelay = 100;
+    velocityDecay = 0.995;
+    velocityEase = 0.1;
+    velocityMultiplier = 20;
+
+    // State
+    flashTimeout: NodeJS.Timeout | null = null;
+    force = 0;
+    health = 0;
+    respawnCount = 0;
+    velocityX = 0;
+    velocityY = 0;
+
+    constructor(app: PIXI.Application, player: Player) {
+        // Initialize parent class
+        super({
+            label: player.id,
+        });
+
+        // Initialize elements
+        this.app = app;
+
+        // Add sprite
+        this.sprite = new PIXI.Sprite();
+        this.addChild(this.sprite);
+        this.sprite.anchor.set(0.5);
+        this.sprite.scale.set(0.7);
+        this.sprite.tint = player.color || '#ffffff';
+
+        // Load texture
+        PIXI.Assets.load('ship.png').then(texture => {
+            this.sprite.texture = texture;
+        });
+
+        // Add health bar
+        this.healthBar = new PIXI.Graphics();
+        this.addChild(this.healthBar);
+        this.healthBar.x = -16;
+        this.healthBar.y = 18;
+
+        // Add name text
+        this.nameText = new PIXI.Text({
+            style: new PIXI.TextStyle({
+                fill: '#ffffff',
+                fontSize: 12,
+            }),
+            text: player.name,
+        });
+        this.addChild(this.nameText);
+        this.nameText.x = -this.nameText.width / 2;
+        this.nameText.y = 24;
+    }
+
+    /** Respawn in random location */
+    respawn = () => {
+        this.updateHealth(this.healthMax);
+        this.sprite.rotation = _.random(0, Math.PI * 2, true);
+        this.x = _.random(0, 1000);
+        this.y = _.random(0, 1000);
+        this.flash(2);
+    };
+
+    /** Stop movement */
+    stop = () => {
+        this.flash(0);
+        this.force = 0;
+        this.velocityX = 0;
+        this.velocityY = 0;
+    };
+
+    /** Flash sprite opacity */
+    flash = (times: number) => {
+        // Clear existing
+        if (this.flashTimeout) {
+            clearTimeout(this.flashTimeout);
+            this.flashTimeout = null;
+        }
+        this.sprite.alpha = this.health ? 1 : 0.3;
+
+        // Stop if no times left
+        if (!times) {
+            return;
+        }
+
+        // Flash once
+        this.sprite.alpha = 0.7;
+        this.flashTimeout = setTimeout(() => {
+            this.sprite.alpha = this.health ? 1 : 0.3;
+            this.flashTimeout = setTimeout(() => {
+                this.flash(times - 1);
+            }, 100);
+        }, 100);
+    };
+
+    /** Get game properties */
+    get = () => {
+        return {
+            health: this.health,
+            id: this.label,
+            position: [this.x, this.y],
+            rotation: this.sprite.rotation,
+            velocity: [this.velocityX, this.velocityY],
+        } as ShipData;
+    };
+
+    /** Set game properties */
+    set = (data: ShipData) => {
+        this.position.set(data.position[0], data.position[1]);
+        this.sprite.rotation = data.rotation;
+        this.velocityX = data.velocity[0];
+        this.velocityY = data.velocity[1];
+        this.updateHealth(data.health);
+    };
+
+    /** Set player control properties */
+    control = (payload: PlayerControlPayload) => {
+        // Parse angle
+        if (payload.angle !== undefined) {
+            this.sprite.rotation = payload.angle;
+        }
+
+        // Parse force
+        if (payload.force !== undefined) {
+            this.force = payload.force;
+        }
+    };
+
+    /** Update player config properties */
+    update = (data: PlayerData) => {
+        // Parse color
+        if (data.color !== undefined) {
+            this.sprite.tint = data.color;
+        }
+
+        // Parse name
+        if (data.name !== undefined) {
+            this.nameText.text = data.name;
+            this.nameText.x = -this.nameText.width / 2;
+        }
+    };
+
+    /** Mark hit by bullet, returns if dead */
+    hit = () => {
+        // Check current health
+        if (!this.health) {
+            return;
+        }
+
+        // Decrease health
+        const health = this.health - 1;
+        this.updateHealth(health);
+
+        // Return death
+        return health <= 0;
+    };
+
+    /** Update health bar to match health and handle death */
+    updateHealth = (value: number) => {
+        // Update property
+        const health = _.clamp(value, 0, this.healthMax);
+        if (this.health === health) {
+            return;
+        }
+        this.health = health;
+
+        // Fill red
+        this.healthBar.clear();
+        this.healthBar.rect(0, 0, 32, 2);
+        this.healthBar.fill('#ff0000');
+
+        // Overlay green
+        this.healthBar.rect(0, 0, (32 * this.health) / this.healthMax, 2);
+        this.healthBar.fill('#00ff00');
+
+        // Flash hit or die
+        if (health) {
+            this.flash(1);
+        } else {
+            this.stop();
+            this.flash(5);
+            this.respawnCount = this.respawnDelay;
+        }
+    };
+
+    /** Game tick */
+    tick = () => {
+        // Check health and respawn
+        if (!this.health && --this.respawnCount <= 0) {
+            this.respawn();
+        }
+
+        // Update velocity
+        if (this.force && this.health) {
+            const force = this.force * this.velocityMultiplier;
+            const targetVelocityX = Math.cos(this.sprite.rotation) * force;
+            const targetVelocityY = Math.sin(this.sprite.rotation) * force;
+            this.velocityX += (targetVelocityX - this.velocityX) * this.velocityEase;
+            this.velocityY += (targetVelocityY - this.velocityY) * this.velocityEase;
+        }
+
+        // Decay velocity
+        this.velocityX *= this.velocityDecay;
+        this.velocityY *= this.velocityDecay;
+
+        // Update position
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+
+        // Wrap around edges
+        if (this.x < 0) this.x = 1000;
+        if (this.x > 1000) this.x = 0;
+        if (this.y < 0) this.y = 1000;
+        if (this.y > 1000) this.y = 0;
+
+        // Return data
+        return this.get();
+    };
+}
