@@ -21,7 +21,7 @@ export function JoinModal({ onClose }: JoinModalProps) {
 
             {/* Container */}
             <div className="flex h-dvh items-center justify-center p-4">
-                <div className="bg-black max-w-2xs p-4 relative w-full" ref={contentRef}>
+                <div className="bg-black p-4 relative text-center" ref={contentRef}>
                     {/* Close button */}
                     <div className="absolute right-0 top-0 p-4">
                         <button className="h-8 w-8" onClick={onClose}>
@@ -31,11 +31,11 @@ export function JoinModal({ onClose }: JoinModalProps) {
 
                     {/* Content */}
                     <h2 className="mb-4 text-5xl text-indigo-500">Join</h2>
-                    <p className="text-center">Open on a mobile device</p>
-                    <div className="bg-white my-2  w-16">
+                    <p className="">Open on a mobile device</p>
+                    <div className="bg-white inline-block my-2">
                         <QRCode size={256} value={link} viewBox="0 0 256 256" />
                     </div>
-                    <a className="block text-center underline" href={link}>
+                    <a className="block underline" href={link}>
                         {link}
                     </a>
                 </div>
