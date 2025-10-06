@@ -209,7 +209,7 @@ class Connection extends Component<ConnectionProviderProps, ConnectionState> {
         }
 
         // Emit event
-        this.emit('player.server.config', data);
+        this.emit('player.server.update', data);
     };
 
     updatePlayerScore = async (playerId: string) => {
