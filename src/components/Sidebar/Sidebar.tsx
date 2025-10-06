@@ -8,7 +8,7 @@ export function Sidebar() {
     const connection = useConnection();
 
     return (
-        <aside className="flex flex-col p-4 w-80">
+        <aside className="bg-stone-950 flex flex-col p-4 w-80">
             <div className="flex-1">
                 <div>ID: {connection.id}</div>
                 <div>Host: {connection.host ? 'true' : 'false'}</div>

@@ -4,3 +4,4 @@ export * from './Loader/Loader';
 export * from './PlayerConfig/PlayerConfig';
 export * from './PlayerController/PlayerController';
 export * from './Sidebar/Sidebar';
+export * from './Header/Header';

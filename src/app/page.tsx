@@ -1,5 +1,5 @@
 'use client';
-import { GameContainer, Loader, Sidebar } from '@/components';
+import { GameContainer, Header, Loader, Sidebar } from '@/components';
 import { useConnection } from '@/contexts/Connection/Connection';
 
 export default function Viewer() {
@@ -10,9 +10,12 @@ export default function Viewer() {
     }
 
     return (
-        <div className="flex h-dvh">
-            <GameContainer />
-            <Sidebar />
-        </div>
+        <>
+            <Header />
+            <div className="flex flex-1">
+                <GameContainer />
+                <Sidebar />
+            </div>
+        </>
     );
 }
