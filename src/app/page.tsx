@@ -12,7 +12,7 @@ export default function Viewer() {
     return (
         <>
             <Header />
-            <div className="flex flex-1">
+            <div className="flex flex-1 flex-col-reverse md:flex-row">
                 <GameContainer />
                 <Sidebar />
             </div>

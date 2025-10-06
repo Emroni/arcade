@@ -8,13 +8,10 @@ export function Sidebar() {
     const connection = useConnection();
 
     return (
-        <aside className="bg-stone-950 flex flex-col p-4 w-80">
+        <aside className="bg-stone-950 flex flex-col p-4 md:w-80">
+            {/* Leaderboard */}
             <div className="flex-1">
-                <div>ID: {connection.id}</div>
-                <div>Host: {connection.host ? 'true' : 'false'}</div>
-                <div>Viewers: {connection.viewers}</div>
-                <div>Players: {connection.players.length}</div>
-                <ul className="mt-4">
+                <ul>
                     {connection.players.map(player => (
                         <li key={player.id} style={{ color: player.color }}>
                             [{player.score}] {player.name}
