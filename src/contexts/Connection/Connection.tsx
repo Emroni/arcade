@@ -2,8 +2,7 @@
 import { debugClient } from '@/debug';
 import { GameTick } from '@/game/types';
 import { withPathname } from '@/hooks';
-import { Player, PlayerData } from '@/types';
-import { ViewerSyncPayload } from '@/types/viewer';
+import { Player, PlayerData, ViewerSyncPayload } from '@/types';
 import { compose } from '@/utils';
 import _ from 'lodash';
 import { Component, createContext, useContext } from 'react';

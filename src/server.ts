@@ -2,8 +2,14 @@ import dotenvFlow from 'dotenv-flow';
 import { Server, Socket } from 'socket.io';
 import { debugServer } from './debug';
 import { GameTick } from './game/types';
-import { Player, PlayerButton, PlayerButtonPayload, PlayerControlPayload, PlayerData } from './types';
-import { ViewerSyncPayload } from './types/viewer';
+import {
+    Player,
+    PlayerButton,
+    PlayerButtonPayload,
+    PlayerControlPayload,
+    PlayerData,
+    ViewerSyncPayload,
+} from './types';
 
 // Configuration
 dotenvFlow.config();
