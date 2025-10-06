@@ -1,23 +1,15 @@
 'use client';
-import { useConnection } from '@/contexts/Connection/Connection';
 import { useState } from 'react';
 import { JoinModal } from '../JoinModal/JoinModal';
+import { Leaderboard } from '../Leaderboard/Leaderboard';
 
 export function Sidebar() {
     const [joinModal, setJoinModal] = useState(false);
-    const connection = useConnection();
 
     return (
         <aside className="bg-stone-950 flex flex-col p-4 md:w-80">
-            {/* Leaderboard */}
             <div className="flex-1">
-                <ul>
-                    {connection.players.map(player => (
-                        <li key={player.id} style={{ color: player.color }}>
-                            [{player.score}] {player.name}
-                        </li>
-                    ))}
-                </ul>
+                <Leaderboard />
             </div>
 
             {/* Join */}
