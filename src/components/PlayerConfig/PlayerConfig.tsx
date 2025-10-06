@@ -1,7 +1,7 @@
 'use client';
 import { useConnection } from '@/contexts/Connection/Connection';
-import { XMarkIcon } from '@heroicons/react/24/solid';
 import { HuePicker } from 'react-color';
+import { Icon } from '../Icon/Icon';
 import { PlayerConfigProps } from './PlayerConfig.types';
 
 export function PlayerConfig({ onClose }: PlayerConfigProps) {
@@ -14,7 +14,7 @@ export function PlayerConfig({ onClose }: PlayerConfigProps) {
         <div className="p-2">
             <div className="text-right">
                 <button className="h-8 w-8" onClick={onClose}>
-                    <XMarkIcon />
+                    <Icon size={20} type="close" />
                 </button>
             </div>
 

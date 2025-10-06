@@ -1,7 +1,7 @@
-import { XMarkIcon } from '@heroicons/react/24/solid';
 import { useClickOutside, useHotkeys } from '@mantine/hooks';
 import { useMemo } from 'react';
 import QRCode from 'react-qr-code';
+import { Icon } from '../Icon/Icon';
 import { JoinModalProps } from './JoinModal.types';
 
 export function JoinModal({ onClose }: JoinModalProps) {
@@ -25,7 +25,7 @@ export function JoinModal({ onClose }: JoinModalProps) {
                     {/* Close button */}
                     <div className="absolute right-0 top-0 p-4">
                         <button className="h-8 w-8" onClick={onClose}>
-                            <XMarkIcon />
+                            <Icon size={20} type="close" />
                         </button>
                     </div>
 

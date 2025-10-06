@@ -1,10 +1,10 @@
 'use client';
 import { useConnection } from '@/contexts/Connection/Connection';
 import { PlayerButton } from '@/types';
-import { Cog8ToothIcon } from '@heroicons/react/24/solid';
 import _ from 'lodash';
 import { TouchEvent, useEffect, useMemo, useRef, useState } from 'react';
 import useResizeObserver from 'use-resize-observer';
+import { Icon } from '../Icon/Icon';
 import { PlayerControllerProps } from './PlayerController.types';
 
 const joystickReset: Point = { x: 100, y: 100 };
@@ -81,7 +81,7 @@ export function PlayerController({ onShowConfig }: PlayerControllerProps) {
         <div className="h-dvh p-8 relative select-none touch-none" ref={containerObserver.ref}>
             <div className="absolute right-2 top-2">
                 <button className="h-8 w-8" onClick={onShowConfig}>
-                    <Cog8ToothIcon />
+                    <Icon size={20} type="settings" />
                 </button>
             </div>
 
