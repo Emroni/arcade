@@ -1,4 +1,4 @@
-name: Deploy to DigitalOcean
+name: Build and Deploy
 
 on:
     push:
@@ -6,20 +6,49 @@ on:
             - main
 
 jobs:
-    deploy:
-        name: Deploy via SSH
+    build-and-deploy:
         runs-on: ubuntu-latest
         steps:
-            - name: SSH and deploy
-              uses: appleboy/ssh-action@v1.0.0
+            - name: Checkout Main Branch
+              uses: actions/checkout@v3
               with:
-                  host: ${{ secrets.SERVER_HOST }}
-                  username: ${{ secrets.SERVER_USERNAME }}
+                  fetch-depth: 0
+                  ref: main
+
+            - name: Use Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: "22.x"
+
+            - name: Install SSH Key
+              uses: shimataro/ssh-key-action@v2
+              with:
                   key: ${{ secrets.SSH_KEY }}
-                  script: |
-                      export NVM_DIR=~/.nvm
-                      source ~/.nvm/nvm.sh
-                      cd ${{ secrets.SERVER_ROOT }} 
-                      git pull
-                      yarn install --frozen-lockfile --non-interactive --network-timeout 100000
-                      yarn build
+                  known_hosts: "unnecessary"
+
+            - name: Adding Known Hosts
+              run: ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+            - name: Download .env.production
+              run: rsync -vz ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_ROOT }}/.env.production ./
+
+            - name: Install Dependencies
+              run: yarn install --frozen-lockfile --non-interactive
+
+            - name: Build Website
+              run: yarn build
+
+            # TODO: Run server through Next.js instead
+            - name: Install game server dependencies
+              run: |
+                  cd .next/standalone
+                  yarn add dotenv-flow socket.io
+
+            - name: Copy required files to standalone folder
+              run: |
+                  cp -r .next/static .next/standalone/.next
+                  cp -r public .next/standalone
+                  cp -r src .next/standalone
+
+            - name: Upload standalone folder
+              run: rsync -avz --delete --exclude-from=".rsync-exclude" .next/standalone/ ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:${{ secrets.SERVER_ROOT }}

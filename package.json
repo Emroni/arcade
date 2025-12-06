@@ -1,7 +1,10 @@
 {
     "name": "arcade",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "private": false,
+    "engines": {
+        "node": "22.x"
+    },
     "scripts": {
         "serve": "tsx --watch src/server.ts",
         "dev": "next dev",
