@@ -20,11 +20,11 @@
         "clsx": "^2.1.1",
         "dotenv-flow": "^4.1.0",
         "lodash": "^4.17.21",
-        "next": "15.5.4",
+        "next": "15.5.7",
         "pixi.js": "^8.13.2",
-        "react": "19.1.0",
+        "react": "^19.1.2",
         "react-color": "^2.19.3",
-        "react-dom": "19.1.0",
+        "react-dom": "^19.1.2",
         "react-qr-code": "^2.0.18",
         "socket.io": "^4.8.1",
         "socket.io-client": "^4.8.1",
@@ -42,6 +42,6 @@
         "@types/react-dom": "^19",
         "@types/ws": "^8.18.1",
         "eslint": "^9",
-        "eslint-config-next": "15.5.4"
+        "eslint-config-next": "15.5.7"
     }
 }
